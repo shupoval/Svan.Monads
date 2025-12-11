@@ -144,5 +144,21 @@ namespace Svan.Monads
             result.DoIfError(@do);
             return result;
         }
+
+        public static async Task<TSuccess>  DefaultWithAsync<TError, TSuccess>(
+            this Task<Result<TError, TSuccess>> resultTask,
+            Func<TError, TSuccess> fallback)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            return result.DefaultWith(fallback);
+        }
+
+        public static async Task<TSuccess>  DefaultWithAsync<TError, TSuccess>(
+            this Task<Result<TError, TSuccess>> resultTask,
+            Func<TError, Task<TSuccess>> fallback)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            return await result.DefaultWithAsync(fallback).ConfigureAwait(false);
+        }
     }
 }

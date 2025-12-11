@@ -158,6 +158,11 @@ namespace Svan.Monads
                 error => fallback(error.Value),
                 success => success.Value);
 
+        public Task<TSuccess> DefaultWithAsync(Func<TError, Task<TSuccess>> fallback)
+            => Match(
+                error => fallback(error.Value),
+                success => Task.FromResult(success.Value));
+
         /// <summary>
         /// Get the value of <c>TSuccess</c> or throw a <see cref="NullReferenceException"/>.
         /// </summary>
