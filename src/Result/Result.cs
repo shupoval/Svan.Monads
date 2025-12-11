@@ -27,7 +27,7 @@ namespace Svan.Monads
                 error => Result<TError, TOut>.Error(error.Value),
                 success => binder(success.Value));
 
-        public Task<Result<TError, TOut>> BindAsync<TOut>(Func<TSuccess, Task<Result<TError, TOut>>> binder)
+        public Task<Result<TError, TOut>> Bind<TOut>(Func<TSuccess, Task<Result<TError, TOut>>> binder)
             => Match(
                 error => Task.FromResult<Result<TError, TOut>>(error),
                 success => binder(success.Value));
@@ -37,7 +37,7 @@ namespace Svan.Monads
                 error => binder(error.Value),
                 success => Result<TOut, TSuccess>.Success(success.Value));
 
-        public Task<Result<TOut, TSuccess>> BindErrorAsync<TOut>(Func<TError, Task<Result<TOut, TSuccess>>> binder)
+        public Task<Result<TOut, TSuccess>> BindError<TOut>(Func<TError, Task<Result<TOut, TSuccess>>> binder)
             => Match(
                 error => binder(error.Value),
                 success => Task.FromResult<Result<TOut, TSuccess>>(success.Value));
@@ -55,7 +55,7 @@ namespace Svan.Monads
                 error => Result<TError, TOut>.Error(error.Value),
                 success => Result<TError, TOut>.Success(mapSuccess(success.Value)));
 
-        public Task<Result<TError, TOut>> MapAsync<TOut>(Func<TSuccess, Task<TOut>> mapSuccess)
+        public Task<Result<TError, TOut>> Map<TOut>(Func<TSuccess, Task<TOut>> mapSuccess)
             => Match(
                 error => Task.FromResult<Result<TError, TOut>>(error.Value),
                 CreateMapSuccess(mapSuccess));
@@ -69,7 +69,7 @@ namespace Svan.Monads
                 error => Result<TOut, TSuccess>.Error(mapError(error.Value)),
                 success => Result<TOut, TSuccess>.Success(success.Value));
 
-        public Task<Result<TOut, TSuccess>> MapErrorAsync<TOut>(Func<TError, Task<TOut>> mapError)
+        public Task<Result<TOut, TSuccess>> MapError<TOut>(Func<TError, Task<TOut>> mapError)
             => Match(
                 CreateMapError(mapError),
                 success => Task.FromResult<Result<TOut, TSuccess>>(success.Value));
@@ -77,27 +77,6 @@ namespace Svan.Monads
         private static Func<Error<TError>, Task<Result<TOut, TSuccess>>> CreateMapError<TOut>(Func<TError, Task<TOut>> mapError)
             => async error => Result<TOut, TSuccess>.Error(
                 await mapError(error.Value).ConfigureAwait(false));
-
-        public Task<TOut> FoldAsync<TOut>(
-            Func<TError, Task<TOut>> caseError,
-            Func<TSuccess, Task<TOut>> caseSuccess)
-            => Match(
-                async error => await caseError(error.Value).ConfigureAwait(false),
-                async success => await caseSuccess(success.Value).ConfigureAwait(false));
-
-        public Task<TOut> FoldAsync<TOut>(
-            Func<TError, TOut> caseError,
-            Func<TSuccess, Task<TOut>> caseSuccess)
-            => Match(
-                error => Task.FromResult(caseError(error.Value)),
-                async success => await caseSuccess(success.Value).ConfigureAwait(false));
-
-        public Task<TOut> FoldAsync<TOut>(
-            Func<TError, Task<TOut>> caseError,
-            Func<TSuccess, TOut> caseSuccess)
-            => Match(
-                async error => await caseError(error.Value).ConfigureAwait(false),
-                success => Task.FromResult(caseSuccess(success.Value)));
 
         /// <summary>
         /// Do let's you fire and forget an action that is executed only when the value is <see cref="TSuccess"/>
@@ -114,7 +93,7 @@ namespace Svan.Monads
             return this;
         }
 
-        public async Task<Result<TError, TSuccess>> DoAsync(Func<TSuccess, Task> @do)
+        public async Task<Result<TError, TSuccess>> Do(Func<TSuccess, Task> @do)
         {
             if (IsSuccess())
             {
@@ -140,7 +119,7 @@ namespace Svan.Monads
         }
 
 
-        public async Task<Result<TError, TSuccess>> DoIfErrorAsync(Func<TError, Task> @do)
+        public async Task<Result<TError, TSuccess>> DoIfError(Func<TError, Task> @do)
         {
             if (IsError())
             {
@@ -158,7 +137,7 @@ namespace Svan.Monads
                 error => fallback(error.Value),
                 success => success.Value);
 
-        public Task<TSuccess> DefaultWithAsync(Func<TError, Task<TSuccess>> fallback)
+        public Task<TSuccess> DefaultWith(Func<TError, Task<TSuccess>> fallback)
             => Match(
                 error => fallback(error.Value),
                 success => Task.FromResult(success.Value));
@@ -178,6 +157,27 @@ namespace Svan.Monads
             => Match(
                 error => caseError(error.Value),
                 success => caseSuccess(success.Value));
+
+        public Task<TOut> Fold<TOut>(
+            Func<TError, Task<TOut>> caseError,
+            Func<TSuccess, Task<TOut>> caseSuccess)
+            => Match(
+                async error => await caseError(error.Value).ConfigureAwait(false),
+                async success => await caseSuccess(success.Value).ConfigureAwait(false));
+
+        public Task<TOut> Fold<TOut>(
+            Func<TError, TOut> caseError,
+            Func<TSuccess, Task<TOut>> caseSuccess)
+            => Match(
+                error => Task.FromResult(caseError(error.Value)),
+                async success => await caseSuccess(success.Value).ConfigureAwait(false));
+
+        public Task<TOut> Fold<TOut>(
+            Func<TError, Task<TOut>> caseError,
+            Func<TSuccess, TOut> caseSuccess)
+            => Match(
+                async error => await caseError(error.Value).ConfigureAwait(false),
+                success => Task.FromResult(caseSuccess(success.Value)));
 
         /// <summary>
         /// Combine several results into a new result of <c>TSuccessOut</c> or <c>TError</c> if any of the provided results has an error
