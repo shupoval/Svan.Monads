@@ -5,58 +5,52 @@ Using real world football standings provided by Azhari Muhammad Marzan - https:/
 */
 
 using Svan.Monads;
-using System.Net.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 
 // Firing off a range of queries with various outcomes
-WhichTeamWon("eng.1", 2020);
-WhichTeamWon("fra.1", 2021);
-WhichTeamWon("eng.1", 2022);
-WhichTeamWon("invalid league id", 2020);
+await WhichTeamWon("eng.1", 2020);
+await WhichTeamWon("fra.1", 2021);
+await WhichTeamWon("eng.1", 2022);
+await WhichTeamWon("invalid league id", 2020);
 
-
-static void WhichTeamWon(string leagueId, int season)
+static async Task WhichTeamWon(string leagueId, int season)
 {
-    var result = GetLeague(new Query(leagueId, season))
-                    .Bind(GetSeason)
-                    .Bind(GetParticipants)
-                    .Bind(GetWinner)
-                    .Map(winner => winner.Name)
-                    .DefaultWith(error => error.Reason);
+    var result = await GetLeague(new Query(leagueId, season))
+                    .BindAsync(GetSeason)
+                    .BindAsync(GetParticipants)
+                    .BindAsync(GetWinner)
+                    .MapAsync(winner => winner.Name)
+                    .DefaultWithAsync(error => error.Reason);
 
     Console.WriteLine($"Winner of {season} {leagueId} is:");
     Console.WriteLine(result);
 }
 
-static Result<LookupError, League> GetLeague(Query query)
+static Task<Result<LookupError, League>> GetLeague(Query query)
     => TryCallApi($"leagues/{query.LeagueId}")
-            .Match<Result<LookupError, League>>(
-                error => new LookupError($"Could not get league: {error.Value.Message}"),
-                success => new League(success.Value["data"]["id"].ToString(), query));
+            .MapAsync(success => new League(success["data"]["id"].ToString(), query))
+            .MapErrorAsync(error => new LookupError($"Could not get league: {error.Message}"));
 
-static Result<LookupError, Season> GetSeason(League league)
+static Task<Result<LookupError, Season>> GetSeason(League league)
     => TryCallApi($"leagues/{league.Id}/standings?season={league.Query.Season}&sort=asc")
-            .Match<Result<LookupError, Season>>(
-                error => new LookupError($"Could not get league: {error.Value.Message}"),
-                success => new Season(Convert.ToInt32(success.Value["data"]["season"]), league.Query));
+            .MapAsync(success => new Season(Convert.ToInt32(success["data"]["season"]), league.Query))
+            .MapErrorAsync(error => new LookupError($"Could not get league: {error.Message}"));
 
-static Result<LookupError, IEnumerable<Team>> GetParticipants(Season season)
+static Task<Result<LookupError, IEnumerable<Team>>> GetParticipants(Season season)
     => TryCallApi($"leagues/{season.Query.LeagueId}/standings?season={season.Year}&sort=asc")
-            .Match<Result<LookupError, IEnumerable<Team>>>(
-                error => new LookupError($"Could not get participants: {error.Value.Message}"),
-                success =>
-                {
-                    var participants = success
-                                .Value["data"]["standings"]
-                                .Select((item, rank) => new Team(
-                                    item["team"]["name"].ToString(),
-                                    rank + 1,
-                                    season.Query));
+            .MapErrorAsync(error => new LookupError($"Could not get participants: {error.Message}"))
+            .MapAsync(success =>
+            {
+                var participants = success["data"]["standings"]
+                            .Select((item, rank) => new Team(
+                                item["team"]["name"].ToString(),
+                                rank + 1,
+                                season.Query));
 
-                    return Result<LookupError, IEnumerable<Team>>.Success(participants);
-                });
+                return participants;
+            });
 
 static Result<LookupError, Team> GetWinner(IEnumerable<Team> teams)
 {
@@ -71,17 +65,17 @@ static Result<LookupError, Team> GetWinner(IEnumerable<Team> teams)
     }
 }
 
-static Result<Exception, JObject> TryCallApi(string path)
+static async Task<Result<Exception, JObject>> TryCallApi(string path)
 {
-    const string RootUrl = "https://api-football-standings.azharimm.site/";
+    const string RootUrl = "https://football-standings-api.vercel.app/";
 
     try
     {
         var url = string.Concat(RootUrl, path);
         var client = new HttpClient();
-        var response = client.GetAsync(url).GetAwaiter().GetResult();
+        var response = await client.GetAsync(url);
         response.EnsureSuccessStatusCode();
-        var json = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+        var json = await response.Content.ReadAsStringAsync();
         var parsed = JsonConvert.DeserializeObject<JObject>(json);
 
         return parsed;
