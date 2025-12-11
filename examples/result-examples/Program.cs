@@ -18,11 +18,11 @@ await WhichTeamWon("invalid league id", 2020);
 static async Task WhichTeamWon(string leagueId, int season)
 {
     var result = await GetLeague(new Query(leagueId, season))
-                    .BindAsync(GetSeason)
-                    .BindAsync(GetParticipants)
-                    .BindAsync(GetWinner)
-                    .MapAsync(winner => winner.Name)
-                    .DefaultWithAsync(error => error.Reason);
+                    .Bind(GetSeason)
+                    .Bind(GetParticipants)
+                    .Bind(GetWinner)
+                    .Map(winner => winner.Name)
+                    .DefaultWith(error => error.Reason);
 
     Console.WriteLine($"Winner of {season} {leagueId} is:");
     Console.WriteLine(result);
@@ -30,18 +30,18 @@ static async Task WhichTeamWon(string leagueId, int season)
 
 static Task<Result<LookupError, League>> GetLeague(Query query)
     => TryCallApi($"leagues/{query.LeagueId}")
-            .MapAsync(success => new League(success["data"]["id"].ToString(), query))
-            .MapErrorAsync(error => new LookupError($"Could not get league: {error.Message}"));
+            .Map(success => new League(success["data"]["id"].ToString(), query))
+            .MapError(error => new LookupError($"Could not get league: {error.Message}"));
 
 static Task<Result<LookupError, Season>> GetSeason(League league)
     => TryCallApi($"leagues/{league.Id}/standings?season={league.Query.Season}&sort=asc")
-            .MapAsync(success => new Season(Convert.ToInt32(success["data"]["season"]), league.Query))
-            .MapErrorAsync(error => new LookupError($"Could not get league: {error.Message}"));
+            .Map(success => new Season(Convert.ToInt32(success["data"]["season"]), league.Query))
+            .MapError(error => new LookupError($"Could not get league: {error.Message}"));
 
 static Task<Result<LookupError, IEnumerable<Team>>> GetParticipants(Season season)
     => TryCallApi($"leagues/{season.Query.LeagueId}/standings?season={season.Year}&sort=asc")
-            .MapErrorAsync(error => new LookupError($"Could not get participants: {error.Message}"))
-            .MapAsync(success =>
+            .MapError(error => new LookupError($"Could not get participants: {error.Message}"))
+            .Map(success =>
             {
                 var participants = success["data"]["standings"]
                             .Select((item, rank) => new Team(
