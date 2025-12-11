@@ -1,6 +1,7 @@
 ﻿using System;
 using OneOf.Types;
 using OneOf;
+using System.Threading.Tasks;
 
 namespace Svan.Monads
 {
@@ -26,11 +27,21 @@ namespace Svan.Monads
                 error => Result<TError, TOut>.Error(error.Value),
                 success => binder(success.Value));
 
+        public Task<Result<TError, TOut>> BindAsync<TOut>(Func<TSuccess, Task<Result<TError, TOut>>> binder)
+            => Match(
+                error => Task.FromResult<Result<TError, TOut>>(error),
+                success => binder(success.Value));
+
         public Result<TOut, TSuccess> BindError<TOut>(Func<TError, Result<TOut, TSuccess>> binder)
             => Match(
                 error => binder(error.Value),
                 success => Result<TOut, TSuccess>.Success(success.Value));
-        
+
+        public Task<Result<TOut, TSuccess>> BindErrorAsync<TOut>(Func<TError, Task<Result<TOut, TSuccess>>> binder)
+            => Match(
+                error => binder(error.Value),
+                success => Task.FromResult<Result<TOut, TSuccess>>(success.Value));
+
         /// <summary>
         /// Recover from <c>TError</c> by providing a <c>TSuccess</c> or a new error <c>TOut</c>.
         /// </summary>
@@ -38,19 +49,58 @@ namespace Svan.Monads
             => Match(
                 error => recover(error.Value),
                 success => success.Value);
-        
+
         public Result<TError, TOut> Map<TOut>(Func<TSuccess, TOut> mapSuccess)
             => Match(
                 error => Result<TError, TOut>.Error(error.Value),
                 success => Result<TError, TOut>.Success(mapSuccess(success.Value)));
+
+        public Task<Result<TError, TOut>> MapAsync<TOut>(Func<TSuccess, Task<TOut>> mapSuccess)
+            => Match(
+                error => Task.FromResult<Result<TError, TOut>>(error.Value),
+                CreateMapSuccess(mapSuccess));
+
+        private static Func<Success<TSuccess>, Task<Result<TError, TOut>>> CreateMapSuccess<TOut>(Func<TSuccess, Task<TOut>> mapSuccess)
+            => async success => Result<TError, TOut>.Success(
+                await mapSuccess(success.Value).ConfigureAwait(false));
 
         public Result<TOut, TSuccess> MapError<TOut>(Func<TError, TOut> mapError)
             => Match(
                 error => Result<TOut, TSuccess>.Error(mapError(error.Value)),
                 success => Result<TOut, TSuccess>.Success(success.Value));
 
+        public Task<Result<TOut, TSuccess>> MapErrorAsync<TOut>(Func<TError, Task<TOut>> mapError)
+            => Match(
+                CreateMapError(mapError),
+                success => Task.FromResult<Result<TOut, TSuccess>>(success.Value));
+
+        private static Func<Error<TError>, Task<Result<TOut, TSuccess>>> CreateMapError<TOut>(Func<TError, Task<TOut>> mapError)
+            => async error => Result<TOut, TSuccess>.Error(
+                await mapError(error.Value).ConfigureAwait(false));
+
+        public Task<TOut> FoldAsync<TOut>(
+            Func<TError, Task<TOut>> caseError,
+            Func<TSuccess, Task<TOut>> caseSuccess)
+            => Match(
+                async error => await caseError(error.Value).ConfigureAwait(false),
+                async success => await caseSuccess(success.Value).ConfigureAwait(false));
+
+        public Task<TOut> FoldAsync<TOut>(
+            Func<TError, TOut> caseError,
+            Func<TSuccess, Task<TOut>> caseSuccess)
+            => Match(
+                error => Task.FromResult(caseError(error.Value)),
+                async success => await caseSuccess(success.Value).ConfigureAwait(false));
+
+        public Task<TOut> FoldAsync<TOut>(
+            Func<TError, Task<TOut>> caseError,
+            Func<TSuccess, TOut> caseSuccess)
+            => Match(
+                async error => await caseError(error.Value).ConfigureAwait(false),
+                success => Task.FromResult(caseSuccess(success.Value)));
+
         /// <summary>
-        /// Do let's you fire and forget an action that is executed only when the value is <see cref="TSuccess"/> 
+        /// Do let's you fire and forget an action that is executed only when the value is <see cref="TSuccess"/>
         /// </summary>
         /// <param name="do">An action that takes a single parameter of <see cref="TSuccess"/></param>
         /// <returns>The current state of the Result</returns>
@@ -64,8 +114,18 @@ namespace Svan.Monads
             return this;
         }
 
+        public async Task<Result<TError, TSuccess>> DoAsync(Func<TSuccess, Task> @do)
+        {
+            if (IsSuccess())
+            {
+                await @do(this.SuccessValue()).ConfigureAwait(false);
+            }
+
+            return this;
+        }
+
         /// <summary>
-        /// Do let's you fire and forget an action that is executed only when the value is <see cref="TError"/> 
+        /// Do let's you fire and forget an action that is executed only when the value is <see cref="TError"/>
         /// </summary>
         /// <param name="do">An action that takes a single parameter of <see cref="TError"/></param>
         /// <returns>The current state of the Result</returns>
@@ -79,6 +139,17 @@ namespace Svan.Monads
             return this;
         }
 
+
+        public async Task<Result<TError, TSuccess>> DoIfErrorAsync(Func<TError, Task> @do)
+        {
+            if (IsError())
+            {
+                await @do(this.ErrorValue()).ConfigureAwait(false);
+            }
+
+            return this;
+        }
+
         /// <summary>
         /// Get the value of <c>TSuccess</c> or a default value from the supplied function.
         /// </summary>
@@ -86,7 +157,7 @@ namespace Svan.Monads
             => Match(
                 error => fallback(error.Value),
                 success => success.Value);
-        
+
         /// <summary>
         /// Get the value of <c>TSuccess</c> or throw a <see cref="NullReferenceException"/>.
         /// </summary>
@@ -94,7 +165,7 @@ namespace Svan.Monads
             => Match(
                 error => throw new InvalidOperationException($"Expected a successful value of {typeof(TSuccess).Name} but was {error}."),
                 success => success.Value);
-        
+
         /// <summary>
         /// Fold into value of type <c>TOut</c> with supplied functions for case <c>TError</c> and case <c>TSuccess</c>.
         /// </summary>
