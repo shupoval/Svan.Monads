@@ -7,7 +7,7 @@ namespace Svan.Monads
     {
         public static async Task<Result<Exception, TSuccess>> ToResultAsync<TSuccess>(
             this Task<Try<TSuccess>> tryTask)
-            => await tryTask;
+            => await tryTask.ConfigureAwait(false);
 
         public static async Task<Try<TOut>> MapCatching<TSuccess, TOut>(
             Task<Try<TSuccess>> tryTask,
@@ -55,6 +55,42 @@ namespace Svan.Monads
         {
             var result = await tryTask.ConfigureAwait(false);
             return result.Map(mapSuccess);
+        }
+
+        public async static Task<Try<TSuccess>> Do<TSuccess>(
+            this Task<Try<TSuccess>> tryTask,
+            Action<TSuccess> @do)
+        {
+            var tryResult = await tryTask.ConfigureAwait(false);
+            tryResult.Do(@do);
+            return tryResult;
+        }
+
+        public async static Task<Try<TSuccess>> Do<TSuccess>(
+            this Task<Try<TSuccess>> tryTask,
+            Func<TSuccess, Task> @do)
+        {
+            var tryResult = await tryTask.ConfigureAwait(false);
+            await tryResult.Do(@do).ConfigureAwait(false);
+            return tryResult;
+        }
+
+        public async static Task<Try<TSuccess>> DoIfError<TSuccess>(
+            this Task<Try<TSuccess>> tryTask,
+            Action<Exception> @do)
+        {
+            var tryResult = await tryTask.ConfigureAwait(false);
+            tryResult.DoIfError(@do);
+            return tryResult;
+        }
+
+        public async static Task<Try<TSuccess>> DoIfError<TSuccess>(
+            this Task<Try<TSuccess>> tryTask,
+            Func<Exception, Task> @do)
+        {
+            var tryResult = await tryTask.ConfigureAwait(false);
+            await tryResult.DoIfError(@do).ConfigureAwait(false);
+            return tryResult;
         }
     }
 }

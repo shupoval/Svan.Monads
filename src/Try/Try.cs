@@ -81,6 +81,12 @@ namespace Svan.Monads
         public new Try<TSuccess> Do(Action<TSuccess> @do)
             => base.Do(@do) as Try<TSuccess>;
 
+        public async new Task<Try<TSuccess>> Do(Func<TSuccess, Task> @do)
+        {
+            var tryResult = await base.Do(@do).ConfigureAwait(false);
+            return tryResult as Try<TSuccess>;
+        }
+
         /// <summary>
         /// Do let's you fire and forget an action that is executed only when the value is <see cref="TError"/> 
         /// </summary>
@@ -89,6 +95,11 @@ namespace Svan.Monads
         public new Try<TSuccess> DoIfError(Action<Exception> @do)
             => base.DoIfError(@do) as Try<TSuccess>;
 
+        public async new Task<Try<TSuccess>> DoIfError(Func<Exception, Task> @do)
+        {
+            var tryResult = await base.DoIfError(@do).ConfigureAwait(false);
+            return tryResult as Try<TSuccess>;
+        }
 
         /// <summary>
         /// Combine several results into a new result of <c>TSuccessOut</c> or <c>TError</c> if any of the provided results has an error
