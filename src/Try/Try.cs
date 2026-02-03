@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Threading.Tasks;
+
 using OneOf.Types;
 using OneOf;
 
@@ -11,6 +13,18 @@ namespace Svan.Monads
             try
             {
                 return codeBlock();
+            }
+            catch (Exception ex)
+            {
+                return ex;
+            }
+        }
+
+        public async static Task<Try<TSuccess>> CatchingAsync<TSuccess>(Func<Task<TSuccess>> codeBlock)
+        {
+            try
+            {
+                return await codeBlock().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -34,12 +48,30 @@ namespace Svan.Monads
                  error => error,
                  success => Try.Catching(() => mapper(success)));
 
+        public Task<Try<TOut>> MapCatching<TOut>(Func<TSuccess, Task<TOut>> mapper)
+            => Fold(
+                 error => error,
+                 success => Try.CatchingAsync(() => mapper(success)));
+
         public Try<TOut> Bind<TOut>(Func<TSuccess, Try<TOut>> binder)
-            => base.Bind<TOut>(binder) as Try<TOut>;
+            => base.Bind(binder) as Try<TOut>;
+
+        public Task<Try<TOut>> Bind<TOut>(Func<TSuccess, Task<Try<TOut>>> binder)
+            => Match(
+                error => Task.FromResult<Try<TOut>>(error),
+                success => binder(success.Value));
 
         public new Try<TOut> Map<TOut>(Func<TSuccess, TOut> mapper)
-            => base.Map<TOut>(mapper) as Try<TOut>;
+            => base.Map(mapper) as Try<TOut>;
 
+        public new Task<Try<TOut>> Map<TOut>(Func<TSuccess, Task<TOut>> mapSuccess)
+            => Match(
+                error => Task.FromResult<Try<TOut>>(error.Value),
+                CreateMapSuccess(mapSuccess));
+
+        private static Func<Success<TSuccess>, Task<Try<TOut>>> CreateMapSuccess<TOut>(Func<TSuccess, Task<TOut>> mapSuccess)
+            => async success => Try<TOut>.Success(
+                await mapSuccess(success.Value).ConfigureAwait(false)) as Try<TOut>;
 
         /// <summary>
         /// Do let's you fire and forget an action that is executed only when the value is <see cref="TSuccess"/> 

@@ -1,7 +1,4 @@
 using Xunit;
-using Svan.Monads;
-using OneOf.Types;
-using System;
 
 namespace Svan.Monads.UnitTests
 {
@@ -24,7 +21,7 @@ namespace Svan.Monads.UnitTests
             Try.Catching(() => "a string")
                 .DoIfError((_) => Assert.True(false))
                 .Do((actual) => Assert.Equal("a string", actual))
-                .MapCatching<string>((value) => throw new ArgumentException("This failed"))
+                .MapCatching((Func<string, string>) (value => throw new ArgumentException("This failed")))
                 .DoIfError((exception) => Assert.IsType<ArgumentException>(exception))
                 .MapError((exception) =>
                 {
