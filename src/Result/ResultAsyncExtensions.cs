@@ -41,6 +41,28 @@ namespace Svan.Monads
             return result.BindError(binder);
         }
 
+        public async static Task<Result<TOut, TSuccess>> Recover<TError, TSuccess, TOut>(
+            this Task<Result<TError, TSuccess>> resultTask,
+            Func<TError, Result<TOut, TSuccess>> recover)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            return result.Match(
+                error => recover(error.Value),
+                success => success.Value);
+        }
+
+        public async static Task<Result<TOut, TSuccess>> Recover<TError, TSuccess, TOut>(
+            this Task<Result<TError, TSuccess>> resultTask,
+            Func<TError, Task<Result<TOut, TSuccess>>> recover)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            return await result
+                .Match(
+                    error => recover(error.Value),
+                    success => Task.FromResult<Result<TOut, TSuccess>>(success.Value))
+                .ConfigureAwait(false);
+        }
+
         public async static Task<Result<TError, TOut>> Map<TError, TSuccess, TOut>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TSuccess, Task<TOut>> mapSuccess)
@@ -111,6 +133,15 @@ namespace Svan.Monads
                 .ConfigureAwait(false);
         }
 
+        public async static Task Fold<TError, TSuccess>(
+            this Task<Result<TError, TSuccess>> resultTask,
+            Func<TError, Task> caseError,
+            Func<TSuccess, Task> caseSuccess)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            await result.Fold(caseError, caseSuccess).ConfigureAwait(false);
+        }
+
         public async static Task<Result<TError, TSuccess>> Do<TError, TSuccess>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TSuccess, Task> @do)
@@ -145,7 +176,7 @@ namespace Svan.Monads
             return result;
         }
 
-        public static async Task<TSuccess>  DefaultWith<TError, TSuccess>(
+        public static async Task<TSuccess> DefaultWith<TError, TSuccess>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TError, TSuccess> fallback)
         {
@@ -153,7 +184,7 @@ namespace Svan.Monads
             return result.DefaultWith(fallback);
         }
 
-        public static async Task<TSuccess>  DefaultWith<TError, TSuccess>(
+        public static async Task<TSuccess> DefaultWith<TError, TSuccess>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TError, Task<TSuccess>> fallback)
         {
