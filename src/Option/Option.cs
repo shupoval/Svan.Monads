@@ -1,6 +1,8 @@
 ﻿using System;
-using System.Linq;
+using System.Threading.Tasks;
+
 using OneOf;
+using OneOf.Types;
 
 namespace Svan.Monads
 {
@@ -53,6 +55,16 @@ namespace Svan.Monads
                 some => binder(some.Value));
 
         /// <summary>
+        /// Bind the <c>Option<T></c> to an <c>Option<TOut></c> using a binder function. The binder function will not be executed if the current state of the option is <c>None</c>.
+        /// </summary>
+        /// <param name="binder">A function that returns an <c>Option<TOut></c></param>
+        /// <returns>An option of the output type of the binder. </returns>
+        public Task<Option<TOut>> Bind<TOut>(Func<T, Task<Option<TOut>>> binder)
+            => Match(
+                none => Task.FromResult(Option<TOut>.None()),
+                some => binder(some.Value));
+
+        /// <summary>
         /// Map the value of the option to an <c>Option<TOut></c> using a mapping function. The mapping function will not be executed if the current state of the option is <c>None</c>.
         /// </summary>
         /// <param name="mapping">A function that returns a value of <c>TOut</c></param>
@@ -62,6 +74,20 @@ namespace Svan.Monads
             => Match(
                 none => Option<TOut>.None(),
                 some => Option<TOut>.Some(mapping(some.Value)));
+
+        /// <summary>
+        /// Map the value of the option to an <c>Option<TOut></c> using a mapping function. The mapping function will not be executed if the current state of the option is <c>None</c>.
+        /// </summary>
+        /// <param name="mapping">A function that returns a value of <c>TOut</c></param>
+        /// <typeparam name="TOut"></typeparam>
+        /// <returns>An option of the output type of the mapping</returns>
+        public Task<Option<TOut>> Map<TOut>(Func<T, Task<TOut>> mapping)
+            => Match(
+                none => Task.FromResult(Option<TOut>.None()),
+                CreateMapSome(mapping));
+
+        private static Func<Some<T>, Task<Option<TOut>>> CreateMapSome<TOut>(Func<T, Task<TOut>> mapSome)
+            => async some => Option<TOut>.Some(await mapSome(some.Value).ConfigureAwait(false));
 
         /// <summary>
         /// Filter the value using a filter function. The filter function will not be executed if the current state of the option is <c>None</c>.
@@ -74,6 +100,19 @@ namespace Svan.Monads
                 some => filter(some.Value) ? some : None());
 
         /// <summary>
+        /// Filter the value using a filter function. The filter function will not be executed if the current state of the option is <c>None</c>.
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns><c>Some</c> when filter returns true. <c>None</c> when filter returns false or current state of option is <c>None</c></returns>
+        public Task<Option<T>> Filter(Func<T, Task<bool>> filter)
+            => Match(
+                none => Task.FromResult<Option<T>>(none),
+                CreateFilterSome(filter));
+
+        private static Func<Some<T>, Task<Option<T>>> CreateFilterSome(Func<T, Task<bool>> mapSome)
+            => async some => await mapSome(some.Value).ConfigureAwait(false) ? some : None();
+
+        /// <summary>
         /// Do let's you fire and forget an action that is executed only when the value is Some<T>
         /// </summary>
         /// <param name="do">An action that takes a single parameter of T</param>
@@ -83,6 +122,21 @@ namespace Svan.Monads
             if (IsSome())
             {
                 @do(this.Value());
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Do let's you fire and forget an action that is executed only when the value is Some<T>
+        /// </summary>
+        /// <param name="do">An action that takes a single parameter of T</param>
+        /// <returns>The current state of the Option</returns>
+        public async Task<Option<T>> Do(Func<T, Task> @do)
+        {
+            if (IsSome())
+            {
+                await @do(this.Value()).ConfigureAwait(false);
             }
 
             return this;
@@ -104,6 +158,21 @@ namespace Svan.Monads
         }
 
         /// <summary>
+        /// Do let's you fire and forget an action that is executed only when the value is None
+        /// </summary>
+        /// <param name="do">An action that takes no parameters</param>
+        /// <returns>The current state of the Option</returns>
+        public async Task<Option<T>> DoIfNone(Func<Task> @do)
+        {
+            if (IsNone())
+            {
+                await @do().ConfigureAwait(false);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Fold into value of type <c>TOut</c> with supplied functions for case <c>None</c> and case <c>Some</c>.
         /// </summary>
         public TOut Fold<TOut>(Func<TOut> caseNone, Func<T, TOut> caseSome)
@@ -118,7 +187,15 @@ namespace Svan.Monads
             => Match(
                 none => defaultNone(),
                 some => some.Value);
-        
+
+        /// <summary>
+        /// Get the value of <c>Some</c> or a default value from the supplied function.
+        /// </summary>
+        public Task<T> DefaultWith(Func<Task<T>> defaultNone)
+            => Match(
+                none => defaultNone(),
+                some => Task.FromResult(some.Value));
+
         /// <summary>
         /// Get the value of <c>Some</c> or throw a <see cref="NullReferenceException"/>.
         /// </summary>
