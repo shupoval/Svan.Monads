@@ -21,23 +21,45 @@ namespace Svan.Monads.UnitTests
             }
         }
 
+        private Task<Result<string, int>> DivideAsync(int number, int by) => Task.FromResult(Divide(number, by));
+
         [Fact]
         public void Success_and_error_both_have_values()
         {
             var expectedSuccess = (12 / 2 / 2) * 2;
             var expectedError = ErrorMessage;
 
-            Action<int> doMath = (divideBy)
-                => Divide(12, divideBy)
+            Action<int> div12 = by =>
+                Divide(12, by)
                     .Bind(result => Divide(result, 2))
                     .Map(result => result * 2)
                     .Switch(
                         error => throw new DivideByZeroException(error.Value),
                         success => Assert.Equal(expectedSuccess, success.Value));
 
-            doMath(2);
+            div12(2);
 
-            var exception = Record.Exception(() => doMath(0));
+            var exception = Record.Exception(() => div12(0));
+            Assert.IsType<DivideByZeroException>(exception);
+            Assert.Equal(expectedError, exception.Message);
+        }
+
+        [Fact]
+        public async Task Success_and_error_both_have_values_async()
+        {
+            var expectedSuccess = (12 / 2 / 2) * 2;
+            var expectedError = ErrorMessage;
+
+            Func<int, Task> div12 = by =>
+                DivideAsync(12, by)
+                    .Bind(result => DivideAsync(result, 2))
+                    .Map(result => result * 2)
+                    .Do(success => Assert.Equal(expectedSuccess, success))
+                    .DoIfError(error => throw new DivideByZeroException(error));
+
+            await div12(2);
+
+            var exception = await Record.ExceptionAsync(() => div12(0));
             Assert.IsType<DivideByZeroException>(exception);
             Assert.Equal(expectedError, exception.Message);
         }
