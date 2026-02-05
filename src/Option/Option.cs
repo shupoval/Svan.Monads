@@ -181,6 +181,30 @@ namespace Svan.Monads
                 some => caseSome(some.Value));
 
         /// <summary>
+        /// Fold into value of type <c>TOut</c> with supplied functions for case <c>None</c> and case <c>Some</c>.
+        /// </summary>
+        public Task<TOut> Fold<TOut>(Func<Task<TOut>> caseNone, Func<T, Task<TOut>> caseSome)
+            => Match(
+                async none => await caseNone().ConfigureAwait(false),
+                async some => await caseSome(some.Value).ConfigureAwait(false));
+
+        /// <summary>
+        /// Fold into value of type <c>TOut</c> with supplied functions for case <c>None</c> and case <c>Some</c>.
+        /// </summary>
+        public Task<TOut> Fold<TOut>(Func<Task<TOut>> caseNone, Func<T, TOut> caseSome)
+            => Match(
+                async none => await caseNone().ConfigureAwait(false),
+                some => Task.FromResult(caseSome(some.Value)));
+
+        /// <summary>
+        /// Fold into value of type <c>TOut</c> with supplied functions for case <c>None</c> and case <c>Some</c>.
+        /// </summary>
+        public Task<TOut> Fold<TOut>(Func<TOut> caseNone, Func<T, Task<TOut>> caseSome)
+            => Match(
+                none => Task.FromResult(caseNone()),
+                async some => await caseSome(some.Value).ConfigureAwait(false));
+
+        /// <summary>
         /// Get the value of <c>Some</c> or a default value from the supplied function.
         /// </summary>
         public T DefaultWith(Func<T> defaultNone)
