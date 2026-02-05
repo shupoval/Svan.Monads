@@ -1,7 +1,8 @@
 ﻿using System;
+using System.Threading.Tasks;
+
 using OneOf.Types;
 using OneOf;
-using System.Threading.Tasks;
 
 namespace Svan.Monads
 {
