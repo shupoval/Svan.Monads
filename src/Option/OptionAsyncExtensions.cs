@@ -5,7 +5,7 @@ namespace Svan.Monads
 {
     public static class OptionAsyncExtensions
     {
-        public static async Task<Option<TOut>> Bind<T, TOut>(
+        public async static Task<Option<TOut>> Bind<T, TOut>(
             this Task<Option<T>> optionTask,
             Func<T, Task<Option<TOut>>> binder)
         {
@@ -15,7 +15,7 @@ namespace Svan.Monads
                 .ConfigureAwait(false);
         }
 
-        public static async Task<Option<TOut>> Bind<T, TOut>(
+        public async static Task<Option<TOut>> Bind<T, TOut>(
             this Task<Option<T>> optionTask,
             Func<T, Option<TOut>> binder)
         {
@@ -46,7 +46,7 @@ namespace Svan.Monads
         /// <param name="filter"></param>
         /// <returns><c>Some</c> when filter returns true. <c>None</c> when filter returns false or current state of option is <c>None</c></returns>
         public async static Task<Option<T>> Filter<T>(
-            Task<Option<T>> optionTask,
+            this Task<Option<T>> optionTask,
             Func<T, bool> filter)
         {
             var option = await optionTask.ConfigureAwait(false);
@@ -60,7 +60,7 @@ namespace Svan.Monads
         /// <param name="filter"></param>
         /// <returns><c>Some</c> when filter returns true. <c>None</c> when filter returns false or current state of option is <c>None</c></returns>
         public async static Task<Option<T>> Filter<T>(
-            Task<Option<T>> optionTask,
+            this Task<Option<T>> optionTask,
             Func<T, Task<bool>> filter)
         {
             var option = await optionTask.ConfigureAwait(false);
@@ -148,7 +148,7 @@ namespace Svan.Monads
             await option.Fold(caseNone, caseSome).ConfigureAwait(false);
         }
 
-        public static async Task<T> DefaultWith<T>(
+        public async static Task<T> DefaultWith<T>(
             this Task<Option<T>> optionTask,
             Func<T> fallback)
         {
@@ -156,12 +156,32 @@ namespace Svan.Monads
             return option.DefaultWith(fallback);
         }
 
-        public static async Task<T> DefaultWith<T>(
+        public async static Task<T> DefaultWith<T>(
             this Task<Option<T>> optionTask,
             Func<Task<T>> fallback)
         {
             var option = await optionTask.ConfigureAwait(false);
             return await option.DefaultWith(fallback).ConfigureAwait(false);
+        }
+
+        public async static Task<Option<T>> ToOption<T>(this Task<T> valueTask)
+        {
+            var value = await valueTask.ConfigureAwait(false);
+            return value.ToOption();
+        }
+
+        public async static Task<Result<TError, T>> ToResult<TError, T>(
+            this Task<Option<T>> optionTask,
+            Func<TError> defaultError)
+        {
+            var option = await optionTask.ConfigureAwait(false);
+            return option.ToResult(defaultError);
+        }
+
+        public async static Task<T> OrThrow<T>(this Task<Option<T>> optionTask)
+        {
+            var option = await optionTask.ConfigureAwait(false);
+            return option.OrThrow();
         }
     }
 }

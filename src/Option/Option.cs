@@ -224,7 +224,7 @@ namespace Svan.Monads
         /// </summary>
         public T OrThrow()
             => Match(
-                none => throw new NullReferenceException($"Expected some {typeof(T).Name} but was none."),
+                none => throw new InvalidOperationException($"Expected some {typeof(T).Name} but was none."),
                 some => some.Value);
         
         /// <summary>
