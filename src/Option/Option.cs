@@ -2,7 +2,6 @@
 using System.Threading.Tasks;
 
 using OneOf;
-using OneOf.Types;
 
 namespace Svan.Monads
 {

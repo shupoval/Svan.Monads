@@ -10,9 +10,7 @@ namespace Svan.Monads
             Func<TSuccess, Task<Result<TError, TOut>>> binder)
         {
             var result = await resultTask.ConfigureAwait(false);
-            return await result
-                .Bind(binder)
-                .ConfigureAwait(false);
+            return await result.Bind(binder).ConfigureAwait(false);
         }
 
         public static async Task<Result<TError, TOut>> Bind<TError, TSuccess, TOut>(
@@ -28,9 +26,7 @@ namespace Svan.Monads
             Func<TError, Task<Result<TOut, TSuccess>>> binder)
         {
             var result = await resultTask.ConfigureAwait(false);
-            return await result
-                .BindError(binder)
-                .ConfigureAwait(false);
+            return await result.BindError(binder).ConfigureAwait(false);
         }
 
         public async static Task<Result<TOut, TSuccess>> BindError<TError, TSuccess, TOut>(
@@ -46,9 +42,7 @@ namespace Svan.Monads
             Func<TError, Result<TOut, TSuccess>> recover)
         {
             var result = await resultTask.ConfigureAwait(false);
-            return result.Match(
-                error => recover(error.Value),
-                success => success.Value);
+            return result.Recover(recover);
         }
 
         public async static Task<Result<TOut, TSuccess>> Recover<TError, TSuccess, TOut>(
@@ -56,11 +50,7 @@ namespace Svan.Monads
             Func<TError, Task<Result<TOut, TSuccess>>> recover)
         {
             var result = await resultTask.ConfigureAwait(false);
-            return await result
-                .Match(
-                    error => recover(error.Value),
-                    success => Task.FromResult<Result<TOut, TSuccess>>(success.Value))
-                .ConfigureAwait(false);
+            return await result.Recover(recover).ConfigureAwait(false);
         }
 
         public async static Task<Result<TError, TOut>> Map<TError, TSuccess, TOut>(
@@ -93,6 +83,61 @@ namespace Svan.Monads
         {
             var result = await resultTask.ConfigureAwait(false);
             return result.MapError(mapError);
+        }
+        public async static Task<Result<TError, TSuccess>> Do<TError, TSuccess>(
+            this Task<Result<TError, TSuccess>> resultTask,
+            Func<TSuccess, Task> @do)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            return await result.Do(@do).ConfigureAwait(false);
+        }
+
+        public async static Task<Result<TError, TSuccess>> Do<TError, TSuccess>(
+            this Task<Result<TError, TSuccess>> resultTask,
+            Action<TSuccess> @do)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            return result.Do(@do);
+        }
+
+        public async static Task<Result<TError, TSuccess>> DoIfError<TError, TSuccess>(
+            this Task<Result<TError, TSuccess>> resultTask,
+            Func<TError, Task> @do)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            await result.DoIfError(@do).ConfigureAwait(false);
+            return result;
+        }
+
+        public async static Task<Result<TError, TSuccess>> DoIfError<TError, TSuccess>(
+            this Task<Result<TError, TSuccess>> resultTask,
+            Action<TError> @do)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            result.DoIfError(@do);
+            return result;
+        }
+
+        public static async Task<TSuccess> DefaultWith<TError, TSuccess>(
+            this Task<Result<TError, TSuccess>> resultTask,
+            Func<TError, TSuccess> fallback)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            return result.DefaultWith(fallback);
+        }
+
+        public static async Task<TSuccess> DefaultWith<TError, TSuccess>(
+            this Task<Result<TError, TSuccess>> resultTask,
+            Func<TError, Task<TSuccess>> fallback)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            return await result.DefaultWith(fallback).ConfigureAwait(false);
+        }
+
+        public static async Task<TSuccess> OrThrow<TError, TSuccess>(this Task<Result<TError, TSuccess>> resultTask)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            return result.OrThrow();
         }
 
         public async static Task<TOut> Fold<TError, TSuccess, TOut>(
@@ -142,54 +187,11 @@ namespace Svan.Monads
             await result.Fold(caseError, caseSuccess).ConfigureAwait(false);
         }
 
-        public async static Task<Result<TError, TSuccess>> Do<TError, TSuccess>(
-            this Task<Result<TError, TSuccess>> resultTask,
-            Func<TSuccess, Task> @do)
+        public static async Task<Option<TSuccess>> ToOption<TError, TSuccess>(
+            this Task<Result<TError, TSuccess>> resultTask)
         {
             var result = await resultTask.ConfigureAwait(false);
-            return await result.Do(@do).ConfigureAwait(false);
-        }
-
-        public async static Task<Result<TError, TSuccess>> Do<TError, TSuccess>(
-            this Task<Result<TError, TSuccess>> resultTask,
-            Action<TSuccess> @do)
-        {
-            var result = await resultTask.ConfigureAwait(false);
-            return result.Do(@do);
-        }
-
-        public async static Task<Result<TError, TSuccess>> DoIfError<TError, TSuccess>(
-            this Task<Result<TError, TSuccess>> resultTask,
-            Func<TError, Task> @do)
-        {
-            var result = await resultTask.ConfigureAwait(false);
-            await result.DoIfError(@do).ConfigureAwait(false);
-            return result;
-        }
-
-        public async static Task<Result<TError, TSuccess>> DoIfError<TError, TSuccess>(
-            this Task<Result<TError, TSuccess>> resultTask,
-            Action<TError> @do)
-        {
-            var result = await resultTask.ConfigureAwait(false);
-            result.DoIfError(@do);
-            return result;
-        }
-
-        public static async Task<TSuccess> DefaultWith<TError, TSuccess>(
-            this Task<Result<TError, TSuccess>> resultTask,
-            Func<TError, TSuccess> fallback)
-        {
-            var result = await resultTask.ConfigureAwait(false);
-            return result.DefaultWith(fallback);
-        }
-
-        public static async Task<TSuccess> DefaultWith<TError, TSuccess>(
-            this Task<Result<TError, TSuccess>> resultTask,
-            Func<TError, Task<TSuccess>> fallback)
-        {
-            var result = await resultTask.ConfigureAwait(false);
-            return await result.DefaultWith(fallback).ConfigureAwait(false);
+            return result.ToOption();
         }
     }
 }

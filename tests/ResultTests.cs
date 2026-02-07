@@ -1,25 +1,15 @@
 using Xunit;
-using Svan.Monads;
+
 using OneOf.Types;
 using OneOf;
-using System;
 
 namespace Svan.Monads.UnitTests
 {
     public class ResultTests
     {
         const string ErrorMessage = "division by zero";
-        private Result<string, int> Divide(int number, int by)
-        {
-            if (by == 0)
-            {
-                return new Error<string>(ErrorMessage);
-            }
-            else
-            {
-                return new Success<int>(number / by);
-            }
-        }
+        private Result<string, int> Divide(int number, int by) =>
+            by == 0 ? new Error<string>(ErrorMessage) : number / by;
 
         private Task<Result<string, int>> DivideAsync(int number, int by) => Task.FromResult(Divide(number, by));
 
@@ -97,6 +87,29 @@ namespace Svan.Monads.UnitTests
         }
 
         [Fact]
+        public async Task DefaultWith_lets_you_define_fallback_values_async()
+        {
+            var maxLimitException = new Exception();
+            maxLimitException.Data.Add("max", 25);
+
+            Task<Result<Exception, int>> add5(int val) => Task.FromResult<Result<Exception, int>>(val + 5);
+            Task<Result<Exception, int>> checkIsBelow25(int val) =>
+                Task.FromResult<Result<Exception, int>>(val > 25 ? new Error<Exception>(maxLimitException) : val);
+
+
+            Func<int, Task<int>> add10ReturnMax25 = (start)
+                => Result<Exception, int>.Success(start)
+                    .Bind(add5)
+                    .Bind(add5)
+                    .Bind(checkIsBelow25)
+                    .DefaultWith(exception => (int)exception.Data["max"]);
+
+            Assert.Equal(20, await add10ReturnMax25(10));
+            Assert.Equal(25, await add10ReturnMax25(15));
+            Assert.Equal(25, await add10ReturnMax25(20));
+        }
+
+        [Fact]
         public void Use_Do_to_execute_conditional_actions()
         {
             Result<Exception, int> result = 5;
@@ -107,11 +120,31 @@ namespace Svan.Monads.UnitTests
         }
 
         [Fact]
+        public async Task Use_Do_to_execute_conditional_actions_async()
+        {
+            var resultTask = Task.FromResult<Result<Exception, int>>(5);
+
+            await resultTask
+                .DoIfError(_ => Assert.Fail("this should not be executed"))
+                .Do(i => Assert.Equal(5, i));
+        }
+
+        [Fact]
         public void Use_DoIfError_to_execute_conditional_actions()
         {
             Result<Exception, int> result = new Exception("this is an error");
 
             result
+                .DoIfError(error => Assert.Equal("this is an error", error.Message))
+                .Do(i => Assert.Fail("this should not be executed"));
+        }
+
+        [Fact]
+        public async Task Use_DoIfError_to_execute_conditional_actions_async()
+        {
+            var resultTask = Task.FromResult<Result<Exception, int>>(new Exception("this is an error"));
+
+            await resultTask
                 .DoIfError(error => Assert.Equal("this is an error", error.Message))
                 .Do(i => Assert.Fail("this should not be executed"));
         }
@@ -131,6 +164,23 @@ namespace Svan.Monads.UnitTests
         }
 
         [Fact]
+        public async Task Result_can_be_downcasted_to_option_async()
+        {
+            var resultTask = Task.FromResult<Result<Exception, int>>(new Exception("this is an error"));
+
+            await resultTask
+                .ToOption()
+                .DoIfNone(() => Assert.True(true, "Error should map to None"))
+                .Do(some => Assert.Fail("this should not be executed"));
+
+            resultTask = Task.FromResult<Result<Exception, int>>(5);
+            await resultTask
+                .ToOption()
+                .DoIfNone(() => Assert.Fail("this should not be executed"))
+                .Do(some => Assert.Equal(5, some));
+        }
+
+        [Fact]
         public void Result_can_be_folded_into_a_single_value()
         {
             Result<Exception, int> result = 5;
@@ -138,6 +188,97 @@ namespace Svan.Monads.UnitTests
             var actual = result
                 .Fold(
                     error => 0,
+                    success => success * 2);
+
+            Assert.Equal(10, actual);
+        }
+
+        [Fact]
+        public async Task Result_can_be_folded_into_a_single_value_async()
+        {
+            var resultAsync = Task.FromResult<Result<Exception, int>>(5);
+
+            var actual = await resultAsync
+                .Fold(
+                    error => 0,
+                    success => success * 2);
+
+            Assert.Equal(10, actual);
+        }
+
+        [Fact]
+        public async Task Result_can_be_folded_into_a_single_value_async2()
+        {
+            var resultAsync = Task.FromResult<Result<Exception, int>>(5);
+
+            var actual = await resultAsync
+                .Fold(
+                    error => Task.FromResult(0),
+                    success => success * 2);
+
+            Assert.Equal(10, actual);
+        }
+
+        [Fact]
+        public async Task Result_can_be_folded_into_a_single_value_async3()
+        {
+            var resultAsync = Task.FromResult<Result<Exception, int>>(5);
+
+            var actual = await resultAsync
+                .Fold(
+                    error => Task.FromResult(0),
+                    success => Task.FromResult(success * 2));
+
+            Assert.Equal(10, actual);
+        }
+
+        [Fact]
+        public async Task Result_can_be_folded_into_a_single_value_async4()
+        {
+            var resultAsync = Task.FromResult<Result<Exception, int>>(5);
+
+            var actual = await resultAsync
+                .Fold(
+                    error => 0,
+                    success => Task.FromResult(success * 2));
+
+            Assert.Equal(10, actual);
+        }
+
+        [Fact]
+        public async Task Result_can_be_folded_into_a_single_value_async5()
+        {
+            Result<Exception, int> result = 5;
+
+            var actual = await result
+                .Fold(
+                    error => 0,
+                    success => Task.FromResult(success * 2));
+
+            Assert.Equal(10, actual);
+        }
+
+        [Fact]
+        public async Task Result_can_be_folded_into_a_single_value_async6()
+        {
+            Result<Exception, int> result = 5;
+
+            var actual = await result
+                .Fold(
+                    error => Task.FromResult(0),
+                    success => Task.FromResult(success * 2));
+
+            Assert.Equal(10, actual);
+        }
+
+        [Fact]
+        public async Task Result_can_be_folded_into_a_single_value_async7()
+        {
+            Result<Exception, int> result = 5;
+
+            var actual = await result
+                .Fold(
+                    error => Task.FromResult(0),
                     success => success * 2);
 
             Assert.Equal(10, actual);
@@ -263,7 +404,33 @@ namespace Svan.Monads.UnitTests
 
             Assert.Equal(expected, actual.ErrorValue());
         }
-        
+
+        [Fact]
+        public async Task Pattern_using_OneOf_as_error_type_async()
+        {
+            Task<Result<CustomerError, Customer>> ValidateEmail(Customer customer) =>
+                Task.FromResult<Result<CustomerError, Customer>>(
+                    customer.Email.Contains("@") ? customer : new CustomerError(new InvalidEmail()));
+
+            Task<Result<CustomerError, Customer>> ValidatePhoneNumber(Customer customer) =>
+                Task.FromResult<Result<CustomerError, Customer>>(
+                    customer.PhoneNumber.Contains("+") ? customer : new CustomerError(new InvalidPhoneNumber()));
+
+            var input = new Customer() { Email = "valid@email.com", PhoneNumber = "invalid" };
+
+            var expected = "invalid phone number";
+
+            var actual = await ValidateEmail(input)
+                .Bind(ValidatePhoneNumber)
+                .Map(customer => $"valid customer: ${customer.Email} - ${customer.PhoneNumber}")
+                .MapError(error => error.Match(
+                    invalidEmail => "invalid email",
+                    invalidPhoneNumber => "invalid phone number"
+                ));
+
+            Assert.Equal(expected, actual.ErrorValue());
+        }
+
         [Fact]
         public void OrThrow_throws_an_invalid_operation_exception()
         {
@@ -273,6 +440,17 @@ namespace Svan.Monads.UnitTests
             var resultSuccess = Result<int, int>.Success(1);
             Assert.Equal(1, resultSuccess.OrThrow());
         }
+
+        [Fact]
+        public async Task OrThrow_throws_an_invalid_operation_exception_async()
+        {
+            var resultError = Task.FromResult(Result<int, int>.Error(0));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => resultError.OrThrow());
+
+            var resultSuccess = Task.FromResult(Result<int, int>.Success(1));
+            Assert.Equal(1, await resultSuccess.OrThrow());
+        }
+
         [Fact]
         public void Recover_from_error()
         {
@@ -285,6 +463,21 @@ namespace Svan.Monads.UnitTests
             
             var actualRecoverError = resultError
                 .Recover((error) => Result<string, int>.Error("error"));
+            Assert.Equal("error", actualRecoverError.ErrorValue());
+        }
+
+        [Fact]
+        public async Task Recover_from_error_async()
+        {
+            var resultError = Result<int, int>.Error(0);
+            var actualRecoverSuccess = await resultError
+                .Recover((error) => Task.FromResult(Result<string, int>.Success(error + 1)))
+                .OrThrow();
+            
+            Assert.Equal(1, actualRecoverSuccess);
+
+            var actualRecoverError = await resultError
+                .Recover((error) => Task.FromResult(Result<string, int>.Error("error")));
             Assert.Equal("error", actualRecoverError.ErrorValue());
         }
 

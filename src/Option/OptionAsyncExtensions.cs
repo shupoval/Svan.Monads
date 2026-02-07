@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace Svan.Monads.Option
+namespace Svan.Monads
 {
     public static class OptionAsyncExtensions
     {

@@ -51,6 +51,14 @@ namespace Svan.Monads
                 error => recover(error.Value),
                 success => success.Value);
 
+        /// <summary>
+        /// Recover from <c>TError</c> by providing a <c>TSuccess</c> or a new error <c>TOut</c>.
+        /// </summary>
+        public Task<Result<TOut, TSuccess>> Recover<TOut>(Func<TError, Task<Result<TOut, TSuccess>>> recover)
+            => Match(
+                error => recover(error.Value),
+                success => Task.FromResult<Result<TOut, TSuccess>>(success.Value));
+
         public Result<TError, TOut> Map<TOut>(Func<TSuccess, TOut> mapSuccess)
             => Match(
                 error => Result<TError, TOut>.Error(error.Value),
@@ -144,7 +152,7 @@ namespace Svan.Monads
                 success => Task.FromResult(success.Value));
 
         /// <summary>
-        /// Get the value of <c>TSuccess</c> or throw a <see cref="NullReferenceException"/>.
+        /// Get the value of <c>TSuccess</c> or throw a <see cref="InvalidOperationException"/>.
         /// </summary>
         public TSuccess OrThrow()
             => Match(
