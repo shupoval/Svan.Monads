@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-using OneOf.Types;
 using OneOf;
+using OneOf.Types;
 
 namespace Svan.Monads
 {
@@ -20,8 +20,8 @@ namespace Svan.Monads
 
         public bool IsError() => this.IsT0;
         public bool IsSuccess() => this.IsT1;
-        public TError ErrorValue() => IsError() ? this.AsT0.Value : throw new NullReferenceException();
-        public TSuccess SuccessValue() => IsSuccess() ? this.AsT1.Value : throw new NullReferenceException();
+        public TError ErrorValue() => IsError() ? this.AsT0.Value : throw new InvalidOperationException($"Cannot return {nameof(ErrorValue)}() due to {nameof(IsError)}() is {IsError()}");
+        public TSuccess SuccessValue() => IsSuccess() ? this.AsT1.Value : throw new InvalidOperationException($"Cannot return {nameof(SuccessValue)}() due to {nameof(IsSuccess)}() is {IsSuccess()}");
 
         public Result<TError, TOut> Bind<TOut>(Func<TSuccess, Result<TError, TOut>> binder)
             => Match(

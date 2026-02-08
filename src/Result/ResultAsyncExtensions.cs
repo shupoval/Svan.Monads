@@ -1,6 +1,8 @@
 using System;
 using System.Threading.Tasks;
 
+using OneOf.Types;
+
 namespace Svan.Monads
 {
     public static class ResultAsyncExtensions
@@ -188,11 +190,111 @@ namespace Svan.Monads
             await result.Fold(caseError, caseSuccess).ConfigureAwait(false);
         }
 
+        public static async Task<Result<TError, TSuccessOut>> Zip<TError, TSuccess, TSuccessOut, TSuccessOther>(
+            this Task<Result<TError, TSuccess>> resultTask,
+            Result<TError, TSuccessOther> other,
+            Func<TSuccess, TSuccessOther, TSuccessOut> combine)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            return result.Zip(other, combine);
+        }
+
+        public static async Task<Result<TError, TSuccessOut>> Zip<TError, TSuccess, TSuccessOut, TSuccessFirstOther, TSuccessSecondOther>(
+            this Task<Result<TError, TSuccess>> resultTask,
+            Result<TError, TSuccessFirstOther> firstOther,
+            Result<TError, TSuccessSecondOther> secondOther,
+            Func<TSuccess, TSuccessFirstOther, TSuccessSecondOther, TSuccessOut> combine)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            return result.Zip(firstOther, secondOther, combine);
+        }
+
+        public static async Task<Result<TError, TSuccessOut>> Zip<TError, TSuccess, TSuccessOut, TSuccessFirstOther, TSuccessSecondOther, TSuccessThirdOther>(
+            this Task<Result<TError, TSuccess>> resultTask,
+            Result<TError, TSuccessFirstOther> firstOther,
+            Result<TError, TSuccessSecondOther> secondOther,
+            Result<TError, TSuccessThirdOther> thirdOther,
+            Func<TSuccess, TSuccessFirstOther, TSuccessSecondOther, TSuccessThirdOther, TSuccessOut> combine)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            return result.Zip(firstOther, secondOther, thirdOther, combine);
+        }
+
+        public static async Task<Result<TError, TSuccessOut>> Zip<
+            TError,
+            TSuccess,
+            TSuccessOut,
+            TSuccessFirstOther,
+            TSuccessSecondOther,
+            TSuccessThirdOther,
+            TSuccessFourthOther>(
+            this Task<Result<TError, TSuccess>> resultTask,
+            Result<TError, TSuccessFirstOther> firstOther,
+            Result<TError, TSuccessSecondOther> secondOther,
+            Result<TError, TSuccessThirdOther> thirdOther,
+            Result<TError, TSuccessFourthOther> fourthOther,
+            Func<
+                TSuccess,
+                TSuccessFirstOther,
+                TSuccessSecondOther,
+                TSuccessThirdOther,
+                TSuccessFourthOther,
+                TSuccessOut> combine)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            return result.Zip(firstOther, secondOther, thirdOther, fourthOther, combine);
+        }
+
+
         public static async Task<Option<TSuccess>> ToOption<TError, TSuccess>(
             this Task<Result<TError, TSuccess>> resultTask)
         {
             var result = await resultTask.ConfigureAwait(false);
             return result.ToOption();
         }
+
+        public static async Task<bool> IsError<TError, TSuccess>(
+            this Task<Result<TError, TSuccess>> resultTask)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            return result.IsError();
+        }
+
+        public static async Task<bool> IsSuccess<TError, TSuccess>(
+            this Task<Result<TError, TSuccess>> resultTask)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            return result.IsSuccess();
+        }
+
+        public static async Task<TError> ErrorValue<TError, TSuccess>(
+            this Task<Result<TError, TSuccess>> resultTask)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            return result.ErrorValue();
+        }
+
+        public static async Task<TSuccess> SuccessValue<TError, TSuccess>(
+            this Task<Result<TError, TSuccess>> resultTask)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            return result.SuccessValue();
+        }
+
+        public static Task<Result<TError, Tuple<TFirst, TSecond>>> Merge<TError, TFirst, TSecond>(
+            this Task<Result<TError, TFirst>> first, Result<TError, TSecond> second) =>
+                first.Zip(second, (f, s) => new Tuple<TFirst, TSecond>(f, s));
+
+        public static Task<Result<TError, Tuple<TFirst, TSecond, TThird>>> Merge<TError, TFirst, TSecond, TThird>(
+            this Task<Result<TError, Tuple<TFirst, TSecond>>> group, Result<TError, TThird> other) =>
+                group.Zip(other, (g, o) => new Tuple<TFirst, TSecond, TThird>(g.Item1, g.Item2, o));
+
+        public static Task<Result<TError, Tuple<TFirst, TSecond, TThird, TFourth>>> Merge<TError, TFirst, TSecond, TThird, TFourth>(
+            this Task<Result<TError, Tuple<TFirst, TSecond, TThird>>> group, Result<TError, TFourth> other) =>
+                group.Zip(other, (g, o) => new Tuple<TFirst, TSecond, TThird, TFourth>(g.Item1, g.Item2, g.Item3, o));
+
+        public static Task<Result<TError, Tuple<TFirst, TSecond, TThird, TFourth, TFifth>>> Merge<TError, TFirst, TSecond, TThird, TFourth, TFifth>(
+            this Task<Result<TError, Tuple<TFirst, TSecond, TThird, TFourth>>> group, Result<TError, TFifth> other) =>
+                group.Zip(other, (g, o) => new Tuple<TFirst, TSecond, TThird, TFourth, TFifth>(g.Item1, g.Item2, g.Item3, g.Item4, o));
     }
 }

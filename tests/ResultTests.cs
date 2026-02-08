@@ -299,6 +299,20 @@ namespace Svan.Monads.UnitTests
         }
 
         [Fact]
+        public async Task Combine_results_with_zip_all_are_success_async()
+        {
+            var result1 = Task.FromResult<Result<Exception, int>>(5);
+            Result<Exception, int> result2 = 8;
+            var expected = 13;
+
+            var actual = await result1
+                .Zip(result2, (value1, value2) => value1 + value2)
+                .DefaultWith((_) => 0);
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
         public void Combine_results_with_zip_when_errors_exist()
         {
             Result<Exception, int> result1 = 5;
@@ -306,6 +320,20 @@ namespace Svan.Monads.UnitTests
             var expected = "this should happen";
 
             var actual = result1
+                .Zip(result2, (value1, value2) => "this should not happen")
+                .DefaultWith((_) => "this should happen");
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public async Task Combine_results_with_zip_when_errors_exist_async()
+        {
+            var result1 = Task.FromResult<Result<Exception, int>>(5);
+            Result<Exception, int> result2 = new Exception("an error");
+            var expected = "this should happen";
+
+            var actual = await result1
                 .Zip(result2, (value1, value2) => "this should not happen")
                 .DefaultWith((_) => "this should happen");
 
@@ -324,6 +352,30 @@ namespace Svan.Monads.UnitTests
             var expected = 1 + 2 + 3 + 4 + 5;
 
             var actual = result1
+                .Zip(
+                    result2,
+                    result3,
+                    result4,
+                    result5,
+                    (value1, value2, value3, value4, value5)
+                        => value1 + value2 + value3 + value4 + value5)
+                .DefaultWith((_) => 0);
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public async Task Combine_five_results_with_zip_all_are_success_async()
+        {
+            var result1 = Task.FromResult<Result<Exception, int>>(1);
+            Result<Exception, int> result2 = 2;
+            Result<Exception, int> result3 = 3;
+            Result<Exception, int> result4 = 4;
+            Result<Exception, int> result5 = 5;
+
+            var expected = 1 + 2 + 3 + 4 + 5;
+
+            var actual = await result1
                 .Zip(
                     result2,
                     result3,
@@ -361,9 +413,48 @@ namespace Svan.Monads.UnitTests
         }
 
         [Fact]
+        public async Task Zip_returns_the_first_encountered_error_async()
+        {
+            var result1 = Task.FromResult<Result<string, int>>(1);
+            Result<string, int> result2 = "first error";
+            Result<string, int> result3 = 3;
+            Result<string, int> result4 = "second error";
+            Result<string, int> result5 = 5;
+
+            var expected = "first error";
+
+            var actual = await result1
+                .Zip(
+                    result2,
+                    result3,
+                    result4,
+                    result5,
+                    (value1, value2, value3, value4, value5)
+                        => value1 + value2 + value3 + value4 + value5)
+                .ErrorValue();
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
         public void Merge_can_combine_results()
         {
             var result = Result<string, int>.Success(10)
+                .Merge(Result<string, int>.Success(20))
+                .Merge(Result<string, int>.Success(30))
+                .Merge(Result<string, int>.Success(40))
+                .Merge(Result<string, int>.Success(50))
+                .Fold(
+                    (error) => 0,
+                    (group) => group.Item1 + group.Item2 + group.Item3 + group.Item4 + group.Item5);
+
+            Assert.Equal(150, result);
+        }
+
+        [Fact]
+        public async Task Merge_can_combine_results_async()
+        {
+            var result = await Task.FromResult<Result<string, int>>(10)
                 .Merge(Result<string, int>.Success(20))
                 .Merge(Result<string, int>.Success(30))
                 .Merge(Result<string, int>.Success(40))
