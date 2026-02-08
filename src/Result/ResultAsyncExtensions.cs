@@ -21,7 +21,7 @@ namespace Svan.Monads
             return result.Bind(binder);
         }
 
-        public async static Task<Result<TOut, TSuccess>> BindError<TError, TSuccess, TOut>(
+        public static async Task<Result<TOut, TSuccess>> BindError<TError, TSuccess, TOut>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TError, Task<Result<TOut, TSuccess>>> binder)
         {
@@ -29,7 +29,7 @@ namespace Svan.Monads
             return await result.BindError(binder).ConfigureAwait(false);
         }
 
-        public async static Task<Result<TOut, TSuccess>> BindError<TError, TSuccess, TOut>(
+        public static async Task<Result<TOut, TSuccess>> BindError<TError, TSuccess, TOut>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TError, Result<TOut, TSuccess>> binder)
         {
@@ -37,7 +37,7 @@ namespace Svan.Monads
             return result.BindError(binder);
         }
 
-        public async static Task<Result<TOut, TSuccess>> Recover<TError, TSuccess, TOut>(
+        public static async Task<Result<TOut, TSuccess>> Recover<TError, TSuccess, TOut>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TError, Result<TOut, TSuccess>> recover)
         {
@@ -45,7 +45,7 @@ namespace Svan.Monads
             return result.Recover(recover);
         }
 
-        public async static Task<Result<TOut, TSuccess>> Recover<TError, TSuccess, TOut>(
+        public static async Task<Result<TOut, TSuccess>> Recover<TError, TSuccess, TOut>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TError, Task<Result<TOut, TSuccess>>> recover)
         {
@@ -53,7 +53,7 @@ namespace Svan.Monads
             return await result.Recover(recover).ConfigureAwait(false);
         }
 
-        public async static Task<Result<TError, TOut>> Map<TError, TSuccess, TOut>(
+        public static async Task<Result<TError, TOut>> Map<TError, TSuccess, TOut>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TSuccess, Task<TOut>> mapSuccess)
         {
@@ -61,7 +61,7 @@ namespace Svan.Monads
             return await result.Map(mapSuccess).ConfigureAwait(false);
         }
 
-        public async static Task<Result<TError, TOut>> Map<TError, TSuccess, TOut>(
+        public static async Task<Result<TError, TOut>> Map<TError, TSuccess, TOut>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TSuccess, TOut> mapSuccess)
         {
@@ -69,7 +69,7 @@ namespace Svan.Monads
             return result.Map(mapSuccess);
         }
 
-        public async static Task<Result<TOut, TSuccess>> MapError<TError, TSuccess, TOut>(
+        public static async Task<Result<TOut, TSuccess>> MapError<TError, TSuccess, TOut>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TError, Task<TOut>> mapError)
         {
@@ -77,14 +77,15 @@ namespace Svan.Monads
             return await result.MapError(mapError).ConfigureAwait(false);
         }
 
-        public async static Task<Result<TOut, TSuccess>> MapError<TError, TSuccess, TOut>(
+        public static async Task<Result<TOut, TSuccess>> MapError<TError, TSuccess, TOut>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TError, TOut> mapError)
         {
             var result = await resultTask.ConfigureAwait(false);
             return result.MapError(mapError);
         }
-        public async static Task<Result<TError, TSuccess>> Do<TError, TSuccess>(
+
+        public static async Task<Result<TError, TSuccess>> Do<TError, TSuccess>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TSuccess, Task> @do)
         {
@@ -92,7 +93,7 @@ namespace Svan.Monads
             return await result.Do(@do).ConfigureAwait(false);
         }
 
-        public async static Task<Result<TError, TSuccess>> Do<TError, TSuccess>(
+        public static async Task<Result<TError, TSuccess>> Do<TError, TSuccess>(
             this Task<Result<TError, TSuccess>> resultTask,
             Action<TSuccess> @do)
         {
@@ -100,7 +101,7 @@ namespace Svan.Monads
             return result.Do(@do);
         }
 
-        public async static Task<Result<TError, TSuccess>> DoIfError<TError, TSuccess>(
+        public static async Task<Result<TError, TSuccess>> DoIfError<TError, TSuccess>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TError, Task> @do)
         {
@@ -109,7 +110,7 @@ namespace Svan.Monads
             return result;
         }
 
-        public async static Task<Result<TError, TSuccess>> DoIfError<TError, TSuccess>(
+        public static async Task<Result<TError, TSuccess>> DoIfError<TError, TSuccess>(
             this Task<Result<TError, TSuccess>> resultTask,
             Action<TError> @do)
         {
@@ -140,7 +141,7 @@ namespace Svan.Monads
             return result.OrThrow();
         }
 
-        public async static Task<TOut> Fold<TError, TSuccess, TOut>(
+        public static async Task<TOut> Fold<TError, TSuccess, TOut>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TError, TOut> caseError,
             Func<TSuccess, TOut> caseSuccess)
@@ -149,7 +150,7 @@ namespace Svan.Monads
             return result.Fold(caseError, caseSuccess);
         }
 
-        public async static Task<TOut> Fold<TError, TSuccess, TOut>(
+        public static async Task<TOut> Fold<TError, TSuccess, TOut>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TError, Task<TOut>> caseError,
             Func<TSuccess, TOut> caseSuccess)
@@ -158,7 +159,7 @@ namespace Svan.Monads
             return await result.Fold(caseError, caseSuccess).ConfigureAwait(false);
         }
 
-        public async static Task<TOut> Fold<TError, TSuccess, TOut>(
+        public static async Task<TOut> Fold<TError, TSuccess, TOut>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TError, TOut> caseError,
             Func<TSuccess, Task<TOut>> caseSuccess)
@@ -167,7 +168,7 @@ namespace Svan.Monads
             return await result.Fold(caseError, caseSuccess).ConfigureAwait(false);
         }
 
-        public async static Task<TOut> Fold<TError, TSuccess, TOut>(
+        public static async Task<TOut> Fold<TError, TSuccess, TOut>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TError, Task<TOut>> caseError,
             Func<TSuccess, Task<TOut>> caseSuccess)
@@ -178,7 +179,7 @@ namespace Svan.Monads
                 .ConfigureAwait(false);
         }
 
-        public async static Task Fold<TError, TSuccess>(
+        public static async Task Fold<TError, TSuccess>(
             this Task<Result<TError, TSuccess>> resultTask,
             Func<TError, Task> caseError,
             Func<TSuccess, Task> caseSuccess)

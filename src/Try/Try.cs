@@ -20,7 +20,7 @@ namespace Svan.Monads
             }
         }
 
-        public async static Task<Try<TSuccess>> CatchingAsync<TSuccess>(Func<Task<TSuccess>> codeBlock)
+        public static async Task<Try<TSuccess>> CatchingAsync<TSuccess>(Func<Task<TSuccess>> codeBlock)
         {
             try
             {

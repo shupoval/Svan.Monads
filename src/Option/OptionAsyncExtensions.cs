@@ -5,7 +5,7 @@ namespace Svan.Monads
 {
     public static class OptionAsyncExtensions
     {
-        public async static Task<Option<TOut>> Bind<T, TOut>(
+        public static async Task<Option<TOut>> Bind<T, TOut>(
             this Task<Option<T>> optionTask,
             Func<T, Task<Option<TOut>>> binder)
         {
@@ -15,7 +15,7 @@ namespace Svan.Monads
                 .ConfigureAwait(false);
         }
 
-        public async static Task<Option<TOut>> Bind<T, TOut>(
+        public static async Task<Option<TOut>> Bind<T, TOut>(
             this Task<Option<T>> optionTask,
             Func<T, Option<TOut>> binder)
         {
@@ -23,7 +23,7 @@ namespace Svan.Monads
             return option.Bind(binder);
         }
 
-        public async static Task<Option<TOut>> Map<T, TOut>(
+        public static async Task<Option<TOut>> Map<T, TOut>(
             this Task<Option<T>> optionTask,
             Func<T, Task<TOut>> mapSuccess)
         {
@@ -31,7 +31,7 @@ namespace Svan.Monads
             return await option.Map(mapSuccess).ConfigureAwait(false);
         }
 
-        public async static Task<Option<TOut>> Map<T, TOut>(
+        public static async Task<Option<TOut>> Map<T, TOut>(
             this Task<Option<T>> optionTask,
             Func<T, TOut> mapSuccess)
         {
@@ -45,7 +45,7 @@ namespace Svan.Monads
         /// <param name="optionTask"></param>
         /// <param name="filter"></param>
         /// <returns><c>Some</c> when filter returns true. <c>None</c> when filter returns false or current state of option is <c>None</c></returns>
-        public async static Task<Option<T>> Filter<T>(
+        public static async Task<Option<T>> Filter<T>(
             this Task<Option<T>> optionTask,
             Func<T, bool> filter)
         {
@@ -59,7 +59,7 @@ namespace Svan.Monads
         /// <param name="optionTask"></param>
         /// <param name="filter"></param>
         /// <returns><c>Some</c> when filter returns true. <c>None</c> when filter returns false or current state of option is <c>None</c></returns>
-        public async static Task<Option<T>> Filter<T>(
+        public static async Task<Option<T>> Filter<T>(
             this Task<Option<T>> optionTask,
             Func<T, Task<bool>> filter)
         {
@@ -67,7 +67,7 @@ namespace Svan.Monads
             return await option.Filter(filter).ConfigureAwait(false);
         }
 
-        public async static Task<Option<T>> Do<T>(
+        public static async Task<Option<T>> Do<T>(
             this Task<Option<T>> optionTask,
             Func<T, Task> @do)
         {
@@ -75,7 +75,7 @@ namespace Svan.Monads
             return await option.Do(@do).ConfigureAwait(false);
         }
 
-        public async static Task<Option<T>> Do<T>(
+        public static async Task<Option<T>> Do<T>(
             this Task<Option<T>> optionTask,
             Action<T> @do)
         {
@@ -83,7 +83,7 @@ namespace Svan.Monads
             return option.Do(@do);
         }
 
-        public async static Task<Option<T>> DoIfNone<T>(
+        public static async Task<Option<T>> DoIfNone<T>(
             this Task<Option<T>> optionTask,
             Func<Task> @do)
         {
@@ -92,7 +92,7 @@ namespace Svan.Monads
             return option;
         }
 
-        public async static Task<Option<T>> DoIfNone<T>(
+        public static async Task<Option<T>> DoIfNone<T>(
             this Task<Option<T>> optionTask,
             Action @do)
         {
@@ -101,7 +101,7 @@ namespace Svan.Monads
             return option;
         }
 
-        public async static Task<TOut> Fold<T, TOut>(
+        public static async Task<TOut> Fold<T, TOut>(
             this Task<Option<T>> optionTask,
             Func<TOut> caseNone,
             Func<T, TOut> caseSome)
@@ -110,7 +110,7 @@ namespace Svan.Monads
             return option.Fold(caseNone, caseSome);
         }
 
-        public async static Task<TOut> Fold<T, TOut>(
+        public static async Task<TOut> Fold<T, TOut>(
             this Task<Option<T>> optionTask,
             Func<Task<TOut>> caseNone,
             Func<T, TOut> caseSome)
@@ -119,7 +119,7 @@ namespace Svan.Monads
             return await option.Fold(caseNone, caseSome).ConfigureAwait(false);
         }
 
-        public async static Task<TOut> Fold<T, TOut>(
+        public static async Task<TOut> Fold<T, TOut>(
             this Task<Option<T>> optionTask,
             Func<TOut> caseNone,
             Func<T, Task<TOut>> caseSome)
@@ -128,7 +128,7 @@ namespace Svan.Monads
             return await option.Fold(caseNone, caseSome).ConfigureAwait(false);
         }
 
-        public async static Task<TOut> Fold<T, TOut>(
+        public static async Task<TOut> Fold<T, TOut>(
             this Task<Option<T>> optionTask,
             Func<Task<TOut>> caseNone,
             Func<T, Task<TOut>> caseSome)
@@ -139,7 +139,7 @@ namespace Svan.Monads
                 .ConfigureAwait(false);
         }
 
-        public async static Task Fold<T>(
+        public static async Task Fold<T>(
             this Task<Option<T>> optionTask,
             Func<Task> caseNone,
             Func<T, Task> caseSome)
@@ -148,7 +148,7 @@ namespace Svan.Monads
             await option.Fold(caseNone, caseSome).ConfigureAwait(false);
         }
 
-        public async static Task<T> DefaultWith<T>(
+        public static async Task<T> DefaultWith<T>(
             this Task<Option<T>> optionTask,
             Func<T> fallback)
         {
@@ -156,7 +156,7 @@ namespace Svan.Monads
             return option.DefaultWith(fallback);
         }
 
-        public async static Task<T> DefaultWith<T>(
+        public static async Task<T> DefaultWith<T>(
             this Task<Option<T>> optionTask,
             Func<Task<T>> fallback)
         {
@@ -164,13 +164,13 @@ namespace Svan.Monads
             return await option.DefaultWith(fallback).ConfigureAwait(false);
         }
 
-        public async static Task<Option<T>> ToOption<T>(this Task<T> valueTask)
+        public static async Task<Option<T>> ToOption<T>(this Task<T> valueTask)
         {
             var value = await valueTask.ConfigureAwait(false);
             return value.ToOption();
         }
 
-        public async static Task<Result<TError, T>> ToResult<TError, T>(
+        public static async Task<Result<TError, T>> ToResult<TError, T>(
             this Task<Option<T>> optionTask,
             Func<TError> defaultError)
         {
@@ -178,7 +178,7 @@ namespace Svan.Monads
             return option.ToResult(defaultError);
         }
 
-        public async static Task<T> OrThrow<T>(this Task<Option<T>> optionTask)
+        public static async Task<T> OrThrow<T>(this Task<Option<T>> optionTask)
         {
             var option = await optionTask.ConfigureAwait(false);
             return option.OrThrow();

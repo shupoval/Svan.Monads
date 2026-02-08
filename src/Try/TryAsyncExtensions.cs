@@ -10,7 +10,7 @@ namespace Svan.Monads
             => await tryTask.ConfigureAwait(false);
 
         public static async Task<Try<TOut>> MapCatching<TSuccess, TOut>(
-            Task<Try<TSuccess>> tryTask,
+            this Task<Try<TSuccess>> tryTask,
             Func<TSuccess, TOut> mapper)
         {
             var tryResult = await tryTask.ConfigureAwait(false);
@@ -18,11 +18,19 @@ namespace Svan.Monads
         }
 
         public static async Task<Try<TOut>> MapCatching<TSuccess, TOut>(
-            Task<Try<TSuccess>> tryTask,
+            this Task<Try<TSuccess>> tryTask,
             Func<TSuccess, Task<TOut>> mapper)
         {
             var tryResult = await tryTask.ConfigureAwait(false);
             return await tryResult.MapCatching(mapper).ConfigureAwait(false);
+        }
+
+        public static async Task<Result<TOut, TSuccess>> MapError<TSuccess, TOut>(
+            this Task<Try<TSuccess>> resultTask,
+            Func<Exception, TOut> mapError)
+        {
+            var result = await resultTask.ConfigureAwait(false);
+            return result.MapError(mapError);
         }
 
         public static async Task<Try<TOut>> Bind<TSuccess, TOut>(
@@ -41,7 +49,7 @@ namespace Svan.Monads
             return await tryResult.Bind(binder).ConfigureAwait(false);
         }
 
-        public async static Task<Try<TOut>> Map<TSuccess, TOut>(
+        public static async Task<Try<TOut>> Map<TSuccess, TOut>(
             this Task<Try<TSuccess>> tryTask,
             Func<TSuccess, Task<TOut>> mapSuccess)
         {
@@ -49,7 +57,7 @@ namespace Svan.Monads
             return await result.Map(mapSuccess).ConfigureAwait(false);
         }
 
-        public async static Task<Try<TOut>> Map<TSuccess, TOut>(
+        public static async Task<Try<TOut>> Map<TSuccess, TOut>(
             this Task<Try<TSuccess>> tryTask,
             Func<TSuccess, TOut> mapSuccess)
         {
@@ -57,7 +65,7 @@ namespace Svan.Monads
             return result.Map(mapSuccess);
         }
 
-        public async static Task<Try<TSuccess>> Do<TSuccess>(
+        public static async Task<Try<TSuccess>> Do<TSuccess>(
             this Task<Try<TSuccess>> tryTask,
             Action<TSuccess> @do)
         {
@@ -66,7 +74,7 @@ namespace Svan.Monads
             return tryResult;
         }
 
-        public async static Task<Try<TSuccess>> Do<TSuccess>(
+        public static async Task<Try<TSuccess>> Do<TSuccess>(
             this Task<Try<TSuccess>> tryTask,
             Func<TSuccess, Task> @do)
         {
@@ -75,7 +83,7 @@ namespace Svan.Monads
             return tryResult;
         }
 
-        public async static Task<Try<TSuccess>> DoIfError<TSuccess>(
+        public static async Task<Try<TSuccess>> DoIfError<TSuccess>(
             this Task<Try<TSuccess>> tryTask,
             Action<Exception> @do)
         {
@@ -84,7 +92,7 @@ namespace Svan.Monads
             return tryResult;
         }
 
-        public async static Task<Try<TSuccess>> DoIfError<TSuccess>(
+        public static async Task<Try<TSuccess>> DoIfError<TSuccess>(
             this Task<Try<TSuccess>> tryTask,
             Func<Exception, Task> @do)
         {
