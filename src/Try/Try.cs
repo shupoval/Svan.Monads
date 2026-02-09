@@ -20,7 +20,7 @@ namespace Svan.Monads
             }
         }
 
-        public static async Task<Try<TSuccess>> CatchingAsync<TSuccess>(Func<Task<TSuccess>> codeBlock)
+        public static async Task<Try<TSuccess>> Catching<TSuccess>(Func<Task<TSuccess>> codeBlock)
         {
             try
             {
@@ -51,7 +51,7 @@ namespace Svan.Monads
         public Task<Try<TOut>> MapCatching<TOut>(Func<TSuccess, Task<TOut>> mapper)
             => Fold(
                  error => error,
-                 success => Try.CatchingAsync(() => mapper(success)));
+                 success => Try.Catching(() => mapper(success)));
 
         public Try<TOut> Bind<TOut>(Func<TSuccess, Try<TOut>> binder)
             => base.Bind(binder) as Try<TOut>;

@@ -1,8 +1,6 @@
 using System;
 using System.Threading.Tasks;
 
-using OneOf.Types;
-
 namespace Svan.Monads
 {
     public static class ResultAsyncExtensions
