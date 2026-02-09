@@ -572,6 +572,70 @@ namespace Svan.Monads.UnitTests
             Assert.Equal("error", actualRecoverError.ErrorValue());
         }
 
+        [Fact]
+        public async Task IsError_from_error_async()
+        {
+            var resultError = Task.FromResult(Result<int, int>.Error(0));
+            var actualIsError = await resultError.IsError();
+            Assert.True(actualIsError);
+        }
+
+        [Fact]
+        public async Task IsError_from_success_async()
+        {
+            var resultSuccess = Task.FromResult(Result<int, int>.Success(1));
+            var actualIsError = await resultSuccess.IsError();
+            Assert.False(actualIsError);
+        }
+
+        [Fact]
+        public async Task ErrorValue_from_error_async()
+        {
+            var resultError = Task.FromResult(Result<int, int>.Error(0));
+            var actualErrorValue = await resultError.ErrorValue();
+            Assert.Equal(0, actualErrorValue);
+        }
+
+        [Fact]
+        public async Task ErrorValue_from_success_async()
+        {
+            var resultSuccess = Task.FromResult(Result<int, int>.Success(1));
+            var actualErrorValue = () => resultSuccess.ErrorValue();
+            await Assert.ThrowsAsync<InvalidOperationException>(actualErrorValue);
+        }
+
+        [Fact]
+        public async Task IsSuccess_from_success_async()
+        {
+            var resultSuccess = Task.FromResult(Result<int, int>.Success(1));
+            var actualIsSuccess = await resultSuccess.IsSuccess();
+            Assert.True(actualIsSuccess);
+        }
+
+        [Fact]
+        public async Task IsSuccess_from_error_async()
+        {
+            var resultError = Task.FromResult(Result<int, int>.Error(0));
+            var actualIsSuccess = await resultError.IsSuccess();
+            Assert.False(actualIsSuccess);
+        }
+
+        [Fact]
+        public async Task SuccessValue_from_success_async()
+        {
+            var resultSuccess = Task.FromResult(Result<int, int>.Success(1));
+            var actualSuccessValue = await resultSuccess.SuccessValue();
+            Assert.Equal(1, actualSuccessValue);
+        }
+
+        [Fact]
+        public async Task SuccessValue_from_error_async()
+        {
+            var resultError = Task.FromResult(Result<int, int>.Error(0));
+            var actualSuccessValue = () => resultError.SuccessValue();
+            await Assert.ThrowsAsync<InvalidOperationException>(actualSuccessValue);
+        }
+
         class Customer
         {
             public string Email { get; set; }
