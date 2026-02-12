@@ -164,6 +164,118 @@ namespace Svan.Monads
             return await option.DefaultWith(fallback).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Get the value of <c>Some</c> or throw a <see cref="NullReferenceException"/>.
+        /// </summary>
+        public static async Task<T> OrThrow<T>(
+            this Task<Option<T>> optionTask)
+        {
+            var option = await optionTask.ConfigureAwait(false);
+            return option.OrThrow();
+        }
+
+        /// <summary>
+        /// Combine several options into a new option or <c>None</c> if any of the provided options are <c>None</c>
+        /// </summary>
+        public static async Task<Option<TOut>> Zip<T, TOut, TOther>(
+            this Task<Option<T>> optionTask,
+            Option<TOther> other,
+            Func<T, TOther, TOut> combine)
+        {
+            var option = await optionTask.ConfigureAwait(false);
+            return option.Zip(other, combine);
+        }
+
+        /// <summary>
+        /// Combine several options into a new option or <c>None</c> if any of the provided options are <c>None</c>
+        /// </summary>
+        public static async Task<Option<TOut>> Zip<T, TOut, TFirstOther, TSecondOther>(
+            this Task<Option<T>> optionTask,
+            Option<TFirstOther> firstOther,
+            Option<TSecondOther> secondOther,
+            Func<T, TFirstOther, TSecondOther, TOut> combine)
+        {
+            var option = await optionTask.ConfigureAwait(false);
+            return option.Zip(firstOther, secondOther, combine);
+        }
+
+        /// <summary>
+        /// Combine several options into a new option or <c>None</c> if any of the provided options are <c>None</c>
+        /// </summary>
+        public static async Task<Option<TOut>> Zip<T, TOut, TFirstOther, TSecondOther, TThirdOther>(
+            this Task<Option<T>> optionTask,
+            Option<TFirstOther> firstOther,
+            Option<TSecondOther> secondOther,
+            Option<TThirdOther> thirdOther,
+            Func<T, TFirstOther, TSecondOther, TThirdOther, TOut> combine)
+        {
+            var option = await optionTask.ConfigureAwait(false);
+            return option.Zip(firstOther, secondOther, thirdOther, combine);
+        }
+
+        /// <summary>
+        /// Combine several options into a new option or <c>None</c> if any of the provided options are <c>None</c>
+        /// </summary>
+        public static async Task<Option<TOut>> Zip<T, TOut, TFirstOther, TSecondOther, TThirdOther, TFourthOther>(
+            this Task<Option<T>> optionTask,
+            Option<TFirstOther> firstOther,
+            Option<TSecondOther> secondOther,
+            Option<TThirdOther> thirdOther,
+            Option<TFourthOther> fourthOther,
+            Func<T, TFirstOther, TSecondOther, TThirdOther, TFourthOther, TOut> combine)
+        {
+            var option = await optionTask.ConfigureAwait(false);
+            return option.Zip(firstOther, secondOther, thirdOther, fourthOther, combine);
+        }
+
+        /// <summary>
+        /// Merge two or more options together. Merge will only be performed if all involved options resolve to Some.
+        /// </summary>
+        /// <returns>The values merged into an option of a tuple</returns>
+        public static async Task<Option<Tuple<TFirst, TSecond>>> Merge<TFirst, TSecond>(
+            this Task<Option<TFirst>> firstTask,
+            Option<TSecond> second)
+        {
+            var first = await firstTask.ConfigureAwait(false);
+            return first.Merge(second);
+        }
+
+        /// <summary>
+        /// Merge two or more options together. Merge will only be performed if all involved options resolve to Some.
+        /// </summary>
+        /// <returns>The values merged into an option of a tuple</returns>
+        public static async Task<Option<Tuple<TFirst, TSecond, TThird>>> Merge<TFirst, TSecond, TThird>(
+            this Task<Option<Tuple<TFirst, TSecond>>> groupTask,
+            Option<TThird> other)
+        {
+            var group = await groupTask.ConfigureAwait(false);
+            return group.Merge(other);
+        }
+
+        /// <summary>
+        /// Merge two or more options together. Merge will only be performed if all involved options resolve to Some.
+        /// </summary>
+        /// <returns>The values merged into an option of a tuple</returns>
+        public static async Task<Option<Tuple<TFirst, TSecond, TThird, TFourth>>> Merge<TFirst, TSecond, TThird, TFourth>(
+            this Task<Option<Tuple<TFirst, TSecond, TThird>>> groupTask,
+            Option<TFourth> other)
+        {
+            var group = await groupTask.ConfigureAwait(false);
+            return group.Merge(other);
+        }
+
+        /// <summary>
+        /// Merge two or more options together. Merge will only be performed if all involved options resolve to Some.
+        /// </summary>
+        /// <returns>The values merged into an option of a tuple</returns>
+        public static async Task<Option<Tuple<TFirst, TSecond, TThird, TFourth, TFifth>>> Merge<TFirst, TSecond, TThird, TFourth, TFifth>(
+            this Task<Option<Tuple<TFirst, TSecond, TThird, TFourth>>> groupTask,
+            Option<TFifth> other)
+        {
+            var group = await groupTask.ConfigureAwait(false);
+            return group.Merge(other);
+        }
+
         public static async Task<Option<T>> ToOption<T>(this Task<T> valueTask)
         {
             var value = await valueTask.ConfigureAwait(false);
@@ -176,12 +288,6 @@ namespace Svan.Monads
         {
             var option = await optionTask.ConfigureAwait(false);
             return option.ToResult(defaultError);
-        }
-
-        public static async Task<T> OrThrow<T>(this Task<Option<T>> optionTask)
-        {
-            var option = await optionTask.ConfigureAwait(false);
-            return option.OrThrow();
         }
     }
 }

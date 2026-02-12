@@ -463,6 +463,20 @@ namespace Svan.Monads.UnitTest
         }
 
         [Fact]
+        public async Task Combine_options_with_zip_when_all_are_some_async()
+        {
+            var option1 = Task.FromResult(5.ToOption());
+            var option2 = 8.ToOption();
+            var expected = 13;
+
+            var actual = await option1
+                .Zip(option2, (value1, value2) => value1 + value2)
+                .DefaultWith(() => 0);
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
         public void Combine_options_with_zip_when_none()
         {
             var option1 = 5.ToOption();
@@ -470,6 +484,20 @@ namespace Svan.Monads.UnitTest
             var expected = "this should happen";
 
             var actual = option1
+                .Zip(option2, (value1, value2) => "this should not happen")
+                .DefaultWith(() => "this should happen");
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public async Task Combine_options_with_zip_when_none_async()
+        {
+            var option1 = Task.FromResult(5.ToOption());
+            var option2 = Option<string>.None();
+            var expected = "this should happen";
+
+            var actual = await option1
                 .Zip(option2, (value1, value2) => "this should not happen")
                 .DefaultWith(() => "this should happen");
 
@@ -501,6 +529,30 @@ namespace Svan.Monads.UnitTest
         }
 
         [Fact]
+        public async Task Combine_five_options_with_zip_when_all_are_some_async()
+        {
+            var option1 = Task.FromResult(1.ToOption());
+            var option2 = 2.ToOption();
+            var option3 = 3.ToOption();
+            var option4 = 4.ToOption();
+            var option5 = 5.ToOption();
+
+            var expected = 1 + 2 + 3 + 4 + 5;
+
+            var actual = await option1
+                .Zip(
+                    option2,
+                    option3,
+                    option4,
+                    option5,
+                    (value1, value2, value3, value4, value5)
+                        => value1 + value2 + value3 + value4 + value5)
+                .DefaultWith(() => 0);
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
         public void Merge_can_combine_options()
         {
             var expected = 10 + 20 + 30 + 40 + 50;
@@ -518,10 +570,28 @@ namespace Svan.Monads.UnitTest
         }
 
         [Fact]
+        public async Task Merge_can_combine_options_async()
+        {
+            var expected = 10 + 20 + 30 + 40 + 50;
+            var option1Task = Task.FromResult(10.ToOption());
+
+            var result = await option1Task
+                .Merge(20.ToOption())
+                .Merge(30.ToOption())
+                .Merge(40.ToOption())
+                .Merge(50.ToOption())
+                .Fold(
+                    () => 0,
+                    (group) => group.Item1 + group.Item2 + group.Item3 + group.Item4 + group.Item5);
+
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
         public void ToResult_converts_an_option_to_a_successful_result()
         {
             var option = Option<int>.Some(111);
-            var result = option.ToResult(() => new System.Exception("hello"));
+            var result = option.ToResult(() => new Exception("hello"));
 
             Assert.Equal(111, result.SuccessValue());
         }
