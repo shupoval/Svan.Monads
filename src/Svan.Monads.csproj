@@ -5,13 +5,11 @@
     <PreserveCompilationContext>false</PreserveCompilationContext>
     <PublishWithAspNetCoreTargetManifest>false</PublishWithAspNetCoreTargetManifest>
     <PackageId>Svan.Monads</PackageId>
-    <Version Condition="'$(GITHUB_BUILD_NUMBER)' != ''">1.$(GITHUB_BUILD_NUMBER)</Version>
-    <Version Condition="'$(GITHUB_BUILD_NUMBER)' == ''">1.0</Version>
-    <Authors>Erik Svensson</Authors>
-    <Copyright>Erik Svensson</Copyright>
+    <Authors>Erik Hahne Tensaye</Authors>
+    <Copyright>Erik Hahne Tensaye</Copyright>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <RepositoryUrl>https://github.com/svan-jansson/Svan.Monads</RepositoryUrl>
-    <Description>This library adds common monads to the fantastic OneOf union type library.</Description>
+    <Description>This library adds common monads, currently based on the OneOf union type library.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
@@ -21,6 +19,7 @@
     <None Include="../LICENSE" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Nerdbank.GitVersioning" Version="3.*" PrivateAssets="all" />
     <PackageReference Include="OneOf" Version="3.0.271" />
   </ItemGroup>
 
