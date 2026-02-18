@@ -1,41 +1,17 @@
-﻿using System;
-using OneOf.Types;
-using OneOf;
+using System;
 
 namespace Svan.Monads
 {
-    /// <summary>
-    /// Factory for creating <c>Try&lt;TSuccess&gt;</c> instances by catching exceptions.
-    /// </summary>
-    public static class Try
-    {
-        /// <summary>
-        /// Execute <paramref name="codeBlock"/> and return its result as <c>Success</c>.
-        /// If the code block throws, the exception is caught and returned as the error state.
-        /// </summary>
-        public static Try<TSuccess> Catching<TSuccess>(Func<TSuccess> codeBlock)
-        {
-            try
-            {
-                return codeBlock();
-            }
-            catch (Exception ex)
-            {
-                return ex;
-            }
-        }
-    }
-
     /// <summary>
     /// A specialization of <c>Result&lt;Exception, TSuccess&gt;</c> that provides exception-catching operations.
     /// </summary>
     public class Try<TSuccess> : Result<Exception, TSuccess>
     {
-        public Try(OneOf<Error<Exception>, Success<TSuccess>> _) : base(_) { }
-        public static implicit operator Try<TSuccess>(Error<Exception> _) => new Try<TSuccess>(_);
-        public static implicit operator Try<TSuccess>(Success<TSuccess> _) => new Try<TSuccess>(_);
-        public static implicit operator Try<TSuccess>(TSuccess _) => new Success<TSuccess>(_);
-        public static implicit operator Try<TSuccess>(Exception _) => new Error<Exception>(_);
+        internal Try(Left<Exception> value) : base(value) { }
+        internal Try(Right<TSuccess> value) : base(value) { }
+
+        public static Try<TSuccess> Exception(Exception value) => new(new Left<Exception>(value));
+        public new static Try<TSuccess> Success(TSuccess value) => new(new Right<TSuccess>(value));
 
         /// <summary>
         /// Upcast to <c>Result&lt;Exception, TSuccess&gt;</c>.
@@ -46,8 +22,8 @@ namespace Svan.Monads
         /// Map the success value using a mapping function, catching any exception thrown by the mapper.
         /// </summary>
         public Try<TOut> MapCatching<TOut>(Func<TSuccess, TOut> mapper)
-            => Fold(
-                 error => error,
+            => Fold<Try<TOut>>(
+                 Try.Exception<TOut>,
                  success => Try.Catching(() => mapper(success)));
 
         /// <summary>
@@ -56,18 +32,15 @@ namespace Svan.Monads
         /// </summary>
         public Try<TOut> BindCatching<TOut>(Func<TSuccess, Try<TOut>> binder)
         {
-            if (IsSuccess())
+            if (!IsSuccess()) return Try.Exception<TOut>(ErrorValue());
+            try
             {
-                try
-                {
-                    return binder(SuccessValue());
-                }
-                catch (Exception ex)
-                {
-                    return ex;
-                }
+                return binder(SuccessValue());
             }
-            return ErrorValue();
+            catch (Exception ex)
+            {
+                return Try.Exception<TOut>(ex);
+            }
         }
 
         /// <summary>
@@ -75,11 +48,9 @@ namespace Svan.Monads
         /// The binder is only called when <c>Success</c>; otherwise short-circuits with the existing error.
         /// Exceptions thrown by the binder will propagate. Use <see cref="BindCatching{TOut}"/> to catch them instead.
         /// </summary>
-        public new Try<TOut> Bind<TOut>(Func<TSuccess, Try<TOut>> binder)
+        public Try<TOut> Bind<TOut>(Func<TSuccess, Try<TOut>> binder)
         {
-            if (IsSuccess())
-                return binder(SuccessValue());
-            return ErrorValue();
+            return IsSuccess() ? binder(SuccessValue()) : Try.Exception<TOut>(ErrorValue());
         }
 
         /// <summary>
@@ -89,13 +60,11 @@ namespace Svan.Monads
         /// </summary>
         public new Try<TOut> Map<TOut>(Func<TSuccess, TOut> mapper)
         {
-            if (IsSuccess())
-                return mapper(SuccessValue());
-            return ErrorValue();
+            return IsSuccess() ? Try.Success(mapper(SuccessValue())) : Try.Exception<TOut>(ErrorValue());
         }
 
         /// <summary>
-        /// Do let's you fire and forget an action that is executed only when the value is <see cref="TSuccess"/>
+        /// Do lets you fire and forget an action that is executed only when the value is <see cref="TSuccess"/>
         /// </summary>
         /// <param name="do">An action that takes a single parameter of <see cref="TSuccess"/></param>
         /// <returns>The current state of the Result</returns>
@@ -107,9 +76,9 @@ namespace Svan.Monads
         }
 
         /// <summary>
-        /// Do let's you fire and forget an action that is executed only when the value is <see cref="TError"/>
+        /// Do lets you fire and forget an action that is executed only when the value is <see cref="Exception"/>
         /// </summary>
-        /// <param name="do">An action that takes a single parameter of <see cref="TError"/></param>
+        /// <param name="do">An action that takes a single parameter of <see cref="Exception"/></param>
         /// <returns>The current state of the Result</returns>
         public new Try<TSuccess> DoIfError(Action<Exception> @do)
         {
@@ -121,49 +90,43 @@ namespace Svan.Monads
         /// <summary>
         /// Combine several results into a new result of <c>TSuccessOut</c> or <c>TError</c> if any of the provided results has an error
         /// </summary>
-        public new Try<TSuccessOut> Zip<TSuccessOut, TSuccessOther>(
+        public Try<TSuccessOut> Zip<TSuccessOut, TSuccessOther>(
             Try<TSuccessOther> other,
             Func<TSuccess, TSuccessOther, TSuccessOut> combine)
         {
             var result = base.Zip(other, combine);
-            if (result.IsSuccess())
-                return result.SuccessValue();
-            return result.ErrorValue();
+            return result.IsSuccess() ? Try.Success(result.SuccessValue()) : Try.Exception<TSuccessOut>(result.ErrorValue());
         }
 
         /// <summary>
         /// Combine several results into a new result of <c>TSuccessOut</c> or <c>TError</c> if any of the provided results has an error
         /// </summary>
-        public new Try<TSuccessOut> Zip<TSuccessOut, TSuccessFirstOther, TSuccessSecondOther>(
+        public Try<TSuccessOut> Zip<TSuccessOut, TSuccessFirstOther, TSuccessSecondOther>(
             Try<TSuccessFirstOther> firstOther,
             Try<TSuccessSecondOther> secondOther,
             Func<TSuccess, TSuccessFirstOther, TSuccessSecondOther, TSuccessOut> combine)
         {
             var result = base.Zip(firstOther, secondOther, combine);
-            if (result.IsSuccess())
-                return result.SuccessValue();
-            return result.ErrorValue();
+            return result.IsSuccess() ? Try.Success(result.SuccessValue()) : Try.Exception<TSuccessOut>(result.ErrorValue());
         }
 
         /// <summary>
         /// Combine several results into a new result of <c>TSuccessOut</c> or <c>TError</c> if any of the provided results has an error
         /// </summary>
-        public new Try<TSuccessOut> Zip<TSuccessOut, TSuccessFirstOther, TSuccessSecondOther, TSuccessThirdOther>(
+        public Try<TSuccessOut> Zip<TSuccessOut, TSuccessFirstOther, TSuccessSecondOther, TSuccessThirdOther>(
             Try<TSuccessFirstOther> firstOther,
             Try<TSuccessSecondOther> secondOther,
             Try<TSuccessThirdOther> thirdOther,
             Func<TSuccess, TSuccessFirstOther, TSuccessSecondOther, TSuccessThirdOther, TSuccessOut> combine)
         {
             var result = base.Zip(firstOther, secondOther, thirdOther, combine);
-            if (result.IsSuccess())
-                return result.SuccessValue();
-            return result.ErrorValue();
+            return result.IsSuccess() ? Try.Success(result.SuccessValue()) : Try.Exception<TSuccessOut>(result.ErrorValue());
         }
 
         /// <summary>
         /// Combine several results into a new result of <c>TSuccessOut</c> or <c>TError</c> if any of the provided results has an error
         /// </summary>
-        public new Try<TSuccessOut> Zip<
+        public Try<TSuccessOut> Zip<
             TSuccessOut,
             TSuccessFirstOther,
             TSuccessSecondOther,
@@ -182,9 +145,7 @@ namespace Svan.Monads
                 TSuccessOut> combine)
         {
             var result = base.Zip(firstOther, secondOther, thirdOther, fourthOther, combine);
-            if (result.IsSuccess())
-                return result.SuccessValue();
-            return result.ErrorValue();
+            return result.IsSuccess() ? Try.Success(result.SuccessValue()) : Try.Exception<TSuccessOut>(result.ErrorValue());
         }
     }
 }

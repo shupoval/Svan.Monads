@@ -1,6 +1,4 @@
 using Xunit;
-using OneOf.Types;
-using OneOf;
 
 namespace Svan.Monads.UnitTests
 {
@@ -11,11 +9,11 @@ namespace Svan.Monads.UnitTests
         {
             if (by == 0)
             {
-                return new Error<string>(ErrorMessage);
+                return Result<string, int>.Error(ErrorMessage);
             }
             else
             {
-                return new Success<int>(number / by);
+                return Result<string, int>.Success(number / by);
             }
         }
 
@@ -23,21 +21,16 @@ namespace Svan.Monads.UnitTests
         public void Success_and_error_both_have_values()
         {
             var expectedSuccess = (12 / 2 / 2) * 2;
-            var expectedError = ErrorMessage;
 
-            Action<int> doMath = (divideBy)
-                => Divide(12, divideBy)
-                    .Bind(result => Divide(result, 2))
-                    .Map(result => result * 2)
-                    .Switch(
-                        error => throw new DivideByZeroException(error.Value),
-                        success => Assert.Equal(expectedSuccess, success.Value));
+            Divide(12, 2)
+                .Bind(result => Divide(result, 2))
+                .Map(result => result * 2)
+                .AssertSuccess(expectedSuccess);
 
-            doMath(2);
-
-            var exception = Record.Exception(() => doMath(0));
-            Assert.IsType<DivideByZeroException>(exception);
-            Assert.Equal(expectedError, exception.Message);
+            Divide(12, 0)
+                .Bind(result => Divide(result, 2))
+                .Map(result => result * 2)
+                .AssertError(ErrorMessage);
         }
 
         [Fact]
@@ -46,16 +39,16 @@ namespace Svan.Monads.UnitTests
             var maxLimitException = new Exception();
             maxLimitException.Data.Add("max", 25);
 
-            Result<Exception, int> add5(int val) => new Success<int>(val + 5);
+            Result<Exception, int> add5(int val) => Result<Exception, int>.Success(val + 5);
             Result<Exception, int> checkIsBelow25(int val)
             {
                 if (val > 25)
                 {
-                    return new Error<Exception>(maxLimitException);
+                    return Result<Exception, int>.Error(maxLimitException);
                 }
                 else
                 {
-                    return new Success<int>(val);
+                    return Result<Exception, int>.Success(val);
                 }
             }
 
@@ -75,7 +68,7 @@ namespace Svan.Monads.UnitTests
         [Fact]
         public void Use_Do_to_execute_conditional_actions()
         {
-            Result<Exception, int> result = 5;
+            var result = Result<Exception, int>.Success(5);
 
             result
                 .DoIfError(_ => Assert.Fail("this should not be executed"))
@@ -85,7 +78,7 @@ namespace Svan.Monads.UnitTests
         [Fact]
         public void Use_DoIfError_to_execute_conditional_actions()
         {
-            Result<Exception, int> result = new Exception("this is an error");
+            var result = Result<Exception, int>.Error(new Exception("this is an error"));
 
             result
                 .DoIfError(error => Assert.Equal("this is an error", error.Message))
@@ -95,21 +88,17 @@ namespace Svan.Monads.UnitTests
         [Fact]
         public void Result_can_be_downcasted_to_option()
         {
-            Result<Exception, int> result = new Exception("this is an error");
-            result.ToOption().Switch(
-                none => Assert.True(true, "Error should map to None"),
-                some => Assert.Fail("this should not be executed"));
+            var result = Result<Exception, int>.Error(new Exception("this is an error"));
+            result.ToOption().AssertNone();
 
-            result = 5;
-            result.ToOption().Switch(
-                none => Assert.Fail("this should not be executed"),
-                some => Assert.Equal(5, some.Value));
+            result = Result<Exception, int>.Success(5);
+            result.ToOption().AssertSome(5);
         }
 
         [Fact]
         public void Result_can_be_folded_into_a_single_value()
         {
-            Result<Exception, int> result = 5;
+            var result = Result<Exception, int>.Success(5);
 
             var actual = result
                 .Fold(
@@ -122,8 +111,8 @@ namespace Svan.Monads.UnitTests
         [Fact]
         public void Combine_results_with_zip_all_are_success()
         {
-            Result<Exception, int> result1 = 5;
-            Result<Exception, int> result2 = 8;
+            var result1 = Result<Exception, int>.Success(5);
+            var result2 = Result<Exception, int>.Success(8);
             var expected = 13;
 
             var actual = result1
@@ -136,8 +125,8 @@ namespace Svan.Monads.UnitTests
         [Fact]
         public void Combine_results_with_zip_when_errors_exist()
         {
-            Result<Exception, int> result1 = 5;
-            Result<Exception, int> result2 = new Exception("an error");
+            var result1 = Result<Exception, int>.Success(5);
+            var result2 = Result<Exception, int>.Error(new Exception("an error"));
             var expected = "this should happen";
 
             var actual = result1
@@ -150,11 +139,11 @@ namespace Svan.Monads.UnitTests
         [Fact]
         public void Combine_five_results_with_zip_all_are_success()
         {
-            Result<Exception, int> result1 = 1;
-            Result<Exception, int> result2 = 2;
-            Result<Exception, int> result3 = 3;
-            Result<Exception, int> result4 = 4;
-            Result<Exception, int> result5 = 5;
+            var result1 = Result<Exception, int>.Success(1);
+            var result2 = Result<Exception, int>.Success(2);
+            var result3 = Result<Exception, int>.Success(3);
+            var result4 = Result<Exception, int>.Success(4);
+            var result5 = Result<Exception, int>.Success(5);
 
             var expected = 1 + 2 + 3 + 4 + 5;
 
@@ -174,11 +163,11 @@ namespace Svan.Monads.UnitTests
         [Fact]
         public void Zip_returns_the_first_encountered_error()
         {
-            Result<string, int> result1 = 1;
-            Result<string, int> result2 = "first error";
-            Result<string, int> result3 = 3;
-            Result<string, int> result4 = "second error";
-            Result<string, int> result5 = 5;
+            var result1 = Result<string, int>.Success(1);
+            var result2 = Result<string, int>.Error("first error");
+            var result3 = Result<string, int>.Success(3);
+            var result4 = Result<string, int>.Error("second error");
+            var result5 = Result<string, int>.Success(5);
 
             var expected = "first error";
 
@@ -211,41 +200,11 @@ namespace Svan.Monads.UnitTests
         }
 
         [Fact]
-        public void Pattern_using_OneOf_as_error_type()
-        {
-            Result<CustomerError, Customer> ValidateEmail(Customer customer)
-            {
-                if (customer.Email.Contains("@")) return customer;
-                else return new CustomerError(new InvalidEmail());
-            }
-
-            Result<CustomerError, Customer> ValidatePhoneNumber(Customer customer)
-            {
-                if (customer.PhoneNumber.Contains("+")) return customer;
-                else return new CustomerError(new InvalidPhoneNumber());
-            }
-
-            var input = new Customer() { Email = "valid@email.com", PhoneNumber = "invalid" };
-
-            var expected = "invalid phone number";
-
-            var actual = ValidateEmail(input)
-                .Bind(ValidatePhoneNumber)
-                .Map(customer => $"valid customer: ${customer.Email} - ${customer.PhoneNumber}")
-                .MapError(error => error.Match(
-                    invalidEmail => "invalid email",
-                    invalidPhoneNumber => "invalid phone number"
-                ));
-
-            Assert.Equal(expected, actual.ErrorValue());
-        }
-        
-        [Fact]
         public void OrThrow_throws_an_invalid_operation_exception()
         {
             var resultError = Result<int, int>.Error(0);
             Assert.Throws<InvalidOperationException>(() => resultError.OrThrow());
-            
+
             var resultSuccess = Result<int, int>.Success(1);
             Assert.Equal(1, resultSuccess.OrThrow());
         }
@@ -256,29 +215,72 @@ namespace Svan.Monads.UnitTests
             var actualRecoverSuccess = resultError
                 .Recover((error) => Result<string, int>.Success(error + 1))
                 .OrThrow();
-            
+
             Assert.Equal(1, actualRecoverSuccess);
-            
+
             var actualRecoverError = resultError
                 .Recover((error) => Result<string, int>.Error("error"));
             Assert.Equal("error", actualRecoverError.ErrorValue());
         }
 
-        class Customer
+        [Fact]
+        public void Flatten_returns_inner_result_when_success()
         {
-            public string Email { get; set; }
-            public string PhoneNumber { get; set; }
+            var nested = Result<string, Result<string, int>>.Success(Result<string, int>.Success(42));
+            nested.Flatten().AssertSuccess(42);
         }
 
-        class InvalidEmail { }
-        class InvalidPhoneNumber { }
-
-        class CustomerError : OneOfBase<InvalidEmail, InvalidPhoneNumber>
+        [Fact]
+        public void Flatten_returns_inner_error_when_inner_is_error()
         {
-            public CustomerError(OneOf<InvalidEmail, InvalidPhoneNumber> input) : base(input)
+            var nested = Result<string, Result<string, int>>.Success(Result<string, int>.Error("inner error"));
+            nested.Flatten().AssertError("inner error");
+        }
+
+        [Fact]
+        public void Flatten_returns_outer_error_when_outer_is_error()
+        {
+            var nested = Result<string, Result<string, int>>.Error("outer error");
+            nested.Flatten().AssertError("outer error");
+        }
+
+        [Fact]
+        public void Sequence_returns_all_values_when_all_are_success()
+        {
+            var results = new[]
             {
-            }
+                Result<string, int>.Success(1),
+                Result<string, int>.Success(2),
+                Result<string, int>.Success(3),
+            };
+
+            var sequenced = results.Sequence();
+            Assert.True(sequenced.IsSuccess());
+            Assert.Equal(new[] { 1, 2, 3 }, sequenced.SuccessValue());
         }
 
+        [Fact]
+        public void Sequence_returns_first_error_when_any_is_error()
+        {
+            var results = new[]
+            {
+                Result<string, int>.Success(1),
+                Result<string, int>.Error("first error"),
+                Result<string, int>.Error("second error"),
+            };
+
+            var sequenced = results.Sequence();
+            sequenced.AssertError("first error");
+        }
+
+        [Fact]
+        public void Sequence_returns_success_with_empty_list_when_empty()
+        {
+            var results = Array.Empty<Result<string, int>>();
+
+            var sequenced = results.Sequence();
+            Assert.True(sequenced.IsSuccess());
+            Assert.Empty(sequenced.SuccessValue());
+        }
     }
 }
