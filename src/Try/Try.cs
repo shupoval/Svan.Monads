@@ -3,24 +3,46 @@ using System;
 namespace Svan.Monads
 {
     /// <summary>
-    /// A specialization of <c>Result&lt;Exception, TSuccess&gt;</c> that provides exception-catching operations.
+    /// A specialization of <see cref="Result{TError, TSuccess}"/> that provides exception-catching operations.
     /// </summary>
+    /// <example>
+    /// <code>
+    /// var result = Try.Catching(() => int.Parse("42"))
+    ///     .MapCatching(n => n * 2)
+    ///     .DefaultWith(_ => 0);
+    /// // result == 84
+    ///
+    /// var failed = Try.Catching(() => int.Parse("abc"))
+    ///     .MapCatching(n => n * 2)
+    ///     .DefaultWith(_ => 0);
+    /// // failed == 0 (FormatException caught at each step)
+    /// </code>
+    /// </example>
     public class Try<TSuccess> : Result<Exception, TSuccess>
     {
         internal Try(Left<Exception> value) : base(value) { }
         internal Try(Right<TSuccess> value) : base(value) { }
 
+        /// <summary>Creates a <c>Try</c> in the error state wrapping <paramref name="value"/>.</summary>
         public static Try<TSuccess> Exception(Exception value) => new(new Left<Exception>(value));
+        /// <summary>Creates a <c>Try</c> in the success state wrapping <paramref name="value"/>.</summary>
         public new static Try<TSuccess> Success(TSuccess value) => new(new Right<TSuccess>(value));
 
         /// <summary>
-        /// Upcast to <c>Result&lt;Exception, TSuccess&gt;</c>.
+        /// Upcast to <see cref="Result{TError, TSuccess}"/>.
         /// </summary>
         public Result<Exception, TSuccess> ToResult() => this;
 
         /// <summary>
         /// Map the success value using a mapping function, catching any exception thrown by the mapper.
         /// </summary>
+        /// <example>
+        /// <code>
+        /// var result = Try.Catching(() => "42").MapCatching(int.Parse); // Success(42)
+        /// var failed = Try.Catching(() => "abc").MapCatching(int.Parse); // Exception(FormatException)
+        /// // Unlike Map, exceptions thrown by the mapper are caught rather than propagated.
+        /// </code>
+        /// </example>
         public Try<TOut> MapCatching<TOut>(Func<TSuccess, TOut> mapper)
             => Fold<Try<TOut>>(
                  Try.Exception<TOut>,
@@ -30,6 +52,18 @@ namespace Svan.Monads
         /// Bind using a binder function, catching any exception thrown by the binder.
         /// The binder is only called when <c>Success</c>; otherwise short-circuits with the existing error.
         /// </summary>
+        /// <example>
+        /// <code>
+        /// Try&lt;int&gt; ParsePositive(string s)
+        /// {
+        ///     var n = int.Parse(s); // throws if invalid
+        ///     return n > 0 ? Try.Success(n) : throw new ArgumentException("must be positive");
+        /// }
+        ///
+        /// var result = Try.Catching(() => "42").BindCatching(ParsePositive); // Success(42)
+        /// var failed = Try.Catching(() => "abc").BindCatching(ParsePositive); // Exception(FormatException)
+        /// </code>
+        /// </example>
         public Try<TOut> BindCatching<TOut>(Func<TSuccess, Try<TOut>> binder)
         {
             if (!IsSuccess()) return Try.Exception<TOut>(ErrorValue());
@@ -64,9 +98,9 @@ namespace Svan.Monads
         }
 
         /// <summary>
-        /// Do lets you fire and forget an action that is executed only when the value is <see cref="TSuccess"/>
+        /// Do lets you fire and forget an action that is executed only when the value is <typeparamref name="TSuccess"/>
         /// </summary>
-        /// <param name="do">An action that takes a single parameter of <see cref="TSuccess"/></param>
+        /// <param name="do">An action that takes a single parameter of <typeparamref name="TSuccess"/></param>
         /// <returns>The current state of the Result</returns>
         public new Try<TSuccess> Do(Action<TSuccess> @do)
         {
@@ -88,7 +122,7 @@ namespace Svan.Monads
         }
 
         /// <summary>
-        /// Combine several results into a new result of <c>TSuccessOut</c> or <c>TError</c> if any of the provided results has an error
+        /// Combine several results into a new result of <typeparamref name="TSuccessOut"/> or <see cref="Exception"/> if any of the provided results has an error
         /// </summary>
         public Try<TSuccessOut> Zip<TSuccessOut, TSuccessOther>(
             Try<TSuccessOther> other,
@@ -99,7 +133,7 @@ namespace Svan.Monads
         }
 
         /// <summary>
-        /// Combine several results into a new result of <c>TSuccessOut</c> or <c>TError</c> if any of the provided results has an error
+        /// Combine several results into a new result of <typeparamref name="TSuccessOut"/> or <see cref="Exception"/> if any of the provided results has an error
         /// </summary>
         public Try<TSuccessOut> Zip<TSuccessOut, TSuccessFirstOther, TSuccessSecondOther>(
             Try<TSuccessFirstOther> firstOther,
@@ -111,7 +145,7 @@ namespace Svan.Monads
         }
 
         /// <summary>
-        /// Combine several results into a new result of <c>TSuccessOut</c> or <c>TError</c> if any of the provided results has an error
+        /// Combine several results into a new result of <typeparamref name="TSuccessOut"/> or <see cref="Exception"/> if any of the provided results has an error
         /// </summary>
         public Try<TSuccessOut> Zip<TSuccessOut, TSuccessFirstOther, TSuccessSecondOther, TSuccessThirdOther>(
             Try<TSuccessFirstOther> firstOther,
@@ -124,7 +158,7 @@ namespace Svan.Monads
         }
 
         /// <summary>
-        /// Combine several results into a new result of <c>TSuccessOut</c> or <c>TError</c> if any of the provided results has an error
+        /// Combine several results into a new result of <typeparamref name="TSuccessOut"/> or <see cref="Exception"/> if any of the provided results has an error
         /// </summary>
         public Try<TSuccessOut> Zip<
             TSuccessOut,
